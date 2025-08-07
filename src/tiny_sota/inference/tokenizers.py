@@ -11,13 +11,17 @@ class Llama3Tokenizer:
         self.special_to_id = {"<|begin_of_text|>": 128000,
         "<|end_of_text|>": 128001, "<|start_header_id|>": 128006,
         "<|end_header_id|>": 128007, "<|eot_id|>": 128009}
+        self.special_to_id.update({
+            f"<|reserved_{i}|>": 128002 + i
+            for i in range(256)
+            if 128002 + i not in self.special_to_id.values()})
         self.tokenizer = Tokenizer.from_file(str(file))
-    def encode(self, text, bos=False, eos=False):
+        self.set_eos_token()
+    def encode(self, text):
         ids = []
         stripped = text.strip()
         if stripped in self.special_to_id and "\n" not in stripped:
             return [self.special_to_id[stripped]]
-        print(f">>> {list(filter(None, self.SPLIT_RE.split(text)))}")
         for part in filter(None, self.SPLIT_RE.split(text)):
             if part in self.special_to_id:
                 ids.append(self.special_to_id[part])
@@ -26,6 +30,9 @@ class Llama3Tokenizer:
         return ids
     def decode(self, ids):
         return self.tokenizer.decode(ids, skip_special_tokens=False)
+    def set_eos_token(self):
+        eos_token = "<|end_of_text|>"
+        self.eos_token_id = self.special_to_id[eos_token]
 
 
 class Qwen3Tokenizer:
@@ -37,11 +44,12 @@ class Qwen3Tokenizer:
         "<|vision_pad|>", "<|image_pad|>", "<|video_pad|>",
     ]
     SPLIT_RE = re.compile(r"(<\|[^>]+?\|>)")
-    def __init__(self, file: Path, think_mode=False,
-                 apply_chat_template=True, add_generation_prompt=False):
-        self.think_mode = think_mode
-        self.apply_chat_template = apply_chat_template
-        self.add_generation_prompt = add_generation_prompt
+    def __init__(self, file: Path, **kwargs):
+        self.think_mode = kwargs.get('think_mode', False)
+        self.apply_chat_template = kwargs.get('apply_chat_template', True)
+        self.add_generation_prompt = kwargs.get('add_generation_prompt',False)
+        print(f"{self.think_mode = }")
+        print(f"{self.add_generation_prompt = }")
         self.tokenizer = Tokenizer.from_file(str(file))
         self.set_specials_ids()
         self.set_eos_token()
