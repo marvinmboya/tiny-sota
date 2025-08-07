@@ -11,6 +11,7 @@ ERROR() {
     echo "${RED} $1 ${NC}"
 }
 
+find . -type d -iname '*cache*' -exec rm -rf {} +
 SUCCESS "building tiny-sota..."
 python -m build
 if [ $? -eq 0 ]; then
