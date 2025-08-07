@@ -4,7 +4,7 @@ build-backend = "pdm.backend"
 
 [project]
 name = "tiny-sota"
-version = "0.0.1"
+version = "0.0.3"
 authors = [
   { name="Marvin Mboya", email="marvindesmond@gmail.com" },
 ]
@@ -25,7 +25,9 @@ license-files = ["LICEN[CS]E*"]
 dependencies = [
   'torch',
   'torchvision',
-  'safetensors'
+  'safetensors',
+  'huggingface_hub[cli]',
+  'tokenizers'
 ]
 
 [project.urls]
