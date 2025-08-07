@@ -46,8 +46,6 @@ class Qwen3Tokenizer:
         self.think_mode = kwargs.get('think_mode', False)
         self.apply_chat_template = kwargs.get('apply_chat_template', True)
         self.add_generation_prompt = kwargs.get('add_generation_prompt',False)
-        print(f"{self.think_mode = }")
-        print(f"{self.add_generation_prompt = }")
         self.tokenizer = Tokenizer.from_file(str(file))
         self.set_specials_ids()
         self.set_eos_token()
