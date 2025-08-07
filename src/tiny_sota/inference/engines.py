@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .tokenizers import (
     Llama3Tokenizer, Qwen3Tokenizer
 )
-from ..tiny_utils import ColorPrint
+from ..tiny_utils.display import bcolors
 from .utils import generate_text_stream, GenerateConfig 
 
 @dataclass
@@ -14,6 +14,9 @@ class TokenizerChoices:
 def loadTokenizer(file, tokenizer_class: TokenizerChoices, **kwargs):
     tokenizer_object = tokenizer_class(file, **kwargs)
     return tokenizer_object
+
+def colorFlush(token, color=bcolors.NICE):
+    print(f"{color}{token}{bcolors.ENDC}",end="",flush=True)
 
 class LLMEngine():
     def __init__(self, 
@@ -33,6 +36,4 @@ class LLMEngine():
             self.model, token_ids, max_new_tokens, 
             context_len, eos_token_id=self.eos_token_id):
             token_id = token.squeeze(0).tolist()
-            print("hello")
-            # print(self.tokenizer.decode(token_id),
-            #         end="", flush=True)
+            colorFlush(self.tokenizer.decode(token_id))
