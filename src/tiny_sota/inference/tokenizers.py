@@ -2,8 +2,6 @@ import re
 from pathlib import Path 
 
 from tokenizers import Tokenizer
-import tiktoken
-from tiktoken.load import load_tiktoken_bpe
 
 class Llama3Tokenizer:
     SPLIT_RE = re.compile(r"(<\|[^>]+?\|>)")
