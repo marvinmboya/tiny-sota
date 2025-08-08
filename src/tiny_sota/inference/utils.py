@@ -9,11 +9,15 @@ class GenerateConfig:
 
 def generate_text_stream(
         model, token_ids, max_new_tokens, context_len, 
-        temperature=0.0, top_k=None, eos_token_id=None):
+        temperature=0.0, top_k=None, eos_token_id=None, is_hf_model=False):
     for _ in range(max_new_tokens):
         idx_cond = token_ids[:, -context_len:]
         with torch.no_grad():
-            logits = model(idx_cond)[:, -1]
+            if is_hf_model:
+                logits = model(idx_cond).logits
+            else:
+                logits = model(idx_cond)
+            logits = logits[:, -1]
         if top_k is not None:
             top_logits, _ = torch.topk(logits, top_k)
             min_val = top_logits[:, -1]
