@@ -1,6 +1,11 @@
 import torch 
 import torchvision
 from torchvision.models.feature_extraction import create_feature_extractor, get_graph_node_names
+from dataclasses import dataclass
+try:
+    from collections.abc import Callable
+except ImportError:
+    from typing import Callable 
 
 GRAY = torchvision.io.ImageReadMode.GRAY
 RGB = torchvision.io.ImageReadMode.RGB
@@ -59,19 +64,18 @@ def get_model_device_state(model):
     )
     return model_device_state
 
-
-def closest_graph_nodes(node_names, in_name):
+def get_closest_graph_node(node_names, in_name):
     matching_children = [n for n in node_names if in_name.split(".")[0] in n]
     print(matching_children)
 
-def eval_node_names(model):
+def get_node_names(model):
     node_names = get_graph_node_names(model)
     # only focused on eval node names
     eval_node_names = node_names[1] 
     return eval_node_names
 
-def intermediate_model(model, in_name, out_name="out"):
-    node_names = eval_node_names(model)
+def build_intermediate_model(model, in_name, out_name="out"):
+    node_names = get_node_names(model)
     assert in_name in node_names, "CHECK GRAPH NODE NAME..."
     return_nodes = {in_name: out_name}
     inter_model = create_feature_extractor(model, return_nodes=return_nodes)
@@ -80,3 +84,8 @@ def intermediate_model(model, in_name, out_name="out"):
         return out_inter_model[out_name]
     return inference_inter_model
 
+@dataclass
+class GraphMutation:
+    getNodes: Callable = get_node_names
+    getClosestNode: Callable = get_closest_graph_node
+    buildIntermediateModel: Callable = build_intermediate_model
