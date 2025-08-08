@@ -5,7 +5,7 @@ def compute_rope_params(head_dim, context_length=4096, theta_base=10_000, dtype=
     assert head_dim % 2 == 0, "Embedding dimension must be even"
     inv_freq = 1.0 / (theta_base ** (torch.arange(0, head_dim, 2, dtype=dtype)[: (head_dim // 2)].float() / head_dim))
     positions = torch.arange(context_length, dtype=dtype)
-    angles = positions[:, None] * inv_freq[None, :]
+    angles = torch.outer(positions,inv_freq)
     angles = torch.cat([angles, angles], dim=1)
     cos, sin = torch.cos(angles), torch.sin(angles)
     return cos, sin
