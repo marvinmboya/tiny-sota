@@ -19,16 +19,20 @@ class TriFeedForward(nn.Module):
         return x 
     
 class RMSNorm(nn.Module):
-    def __init__(self, emb_dim, dtype=torch.float32, bias=False, eps=1e-6):
+    def __init__(self, emb_dim, dtype=torch.float32, bias=False, is_qwen3=False, eps=1e-6):
         super(RMSNorm,self).__init__()
+        self.is_qwen3 = is_qwen3
         self.eps = eps 
         self.weight = nn.Parameter(torch.ones(emb_dim, dtype=dtype))
         self.bias = (nn.Parameter(torch.zeros(emb_dim, dtype=dtype)) 
                     if bias else None)
     def forward(self,x):
+        input_dtype = x.dtype
+        if self.is_qwen3:
+            x = x.to(torch.float32)
         variance = x.pow(2).mean(dim=-1, keepdim=True)
         norm_x = x * torch.rsqrt(self.eps + variance)
         rms_norm = norm_x * self.weight
         if self.bias is not None:
             rms_norm += rms_norm + self.bias
-        return rms_norm
+        return rms_norm.to(input_dtype)
