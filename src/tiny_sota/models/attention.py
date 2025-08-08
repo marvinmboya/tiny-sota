@@ -36,13 +36,14 @@ class Attention(nn.Module):
 
     def forward(self, x, mask, cos, sin):
         B, seq_len, dim = x.shape
+        dtype = x.dtype
         Q = self.Wq(x)
         K = self.Wk(x)
         V = self.Wv(x)
         Q = Q.view(B,seq_len,self.heads,self.head_dim)
         K = K.view(B,seq_len,self.heads,self.head_dim)
         V = V.view(B,seq_len,self.heads,self.head_dim)
-        Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len)
+        Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len, dtype)
         Q = Q.transpose(1,2)
         K = K.transpose(1,2)
         V = V.transpose(1,2)
@@ -58,7 +59,7 @@ class Attention(nn.Module):
         return out
 
 class GQAttention(nn.Module):
-    def __init__(self, config: BaseConfig):
+    def __init__(self, config: BaseConfig, is_qwen3=False):
         super(GQAttention,self).__init__()
         self.heads = config.heads 
         self.head_dim = config.head_dim
@@ -78,8 +79,8 @@ class GQAttention(nn.Module):
         self.Wv = nn.Linear(d_in, self.n_kv_groups * self.head_dim, bias=bias, dtype=dtype)
         self.Wo = nn.Linear(self.d_out, d_in, bias=bias, dtype=dtype)
         if self.qk_norm:
-            self.q_norm = RMSNorm(self.head_dim, dtype=dtype)
-            self.k_norm = RMSNorm(self.head_dim, dtype=dtype)
+            self.q_norm = RMSNorm(self.head_dim, is_qwen3=is_qwen3, dtype=dtype)
+            self.k_norm = RMSNorm(self.head_dim, is_qwen3=is_qwen3, dtype=dtype)
         else:
             self.q_norm = self.k_norm = None
 
