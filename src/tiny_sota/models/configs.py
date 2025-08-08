@@ -1,7 +1,7 @@
 import torch 
 from dataclasses import dataclass 
 
-@dataclass(frozen=True)
+@dataclass
 class BaseConfig:
     n_vocab: int =  50_257
     context_len: int = 1024
@@ -17,8 +17,8 @@ class BaseConfig:
     dtype: torch.dtype = torch.bfloat16
     eps: float = 1e-6
 
-@dataclass(frozen=True)
-class Qwen3_06B_Config(BaseConfig):
+@dataclass
+class Qwen3_06B_Config:
     n_vocab =  151_936
     context_len = 40_960
     emb_dim = 1024
@@ -32,8 +32,8 @@ class Qwen3_06B_Config(BaseConfig):
     rope_base = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
 
-@dataclass(frozen=True)
-class Qwen_Dummy_Config(BaseConfig):
+@dataclass
+class Qwen_Dummy_Config:
     n_vocab =  1_936
     context_len = 4_096
     emb_dim = 1024
