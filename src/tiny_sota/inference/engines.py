@@ -26,7 +26,8 @@ class LLMEngine():
         self.model = loaded_model.eval() 
         self.tokenizer = loadTokenizer(tokenizer_file, tokenizer_choice, **kwargs) 
         self.eos_token_id = self.tokenizer.eos_token_id
-    def __call__(self, prompt, g_config: GenerateConfig):
+    def __call__(self, prompt, g_config: GenerateConfig, is_hf_model=False):
+
         max_new_tokens = g_config.max_new_tokens
         context_len = g_config.context_len
         device = g_config.device
@@ -34,6 +35,6 @@ class LLMEngine():
         token_ids = torch.tensor(tokens,device=device).unsqueeze(0)
         for token in generate_text_stream(
             self.model, token_ids, max_new_tokens, 
-            context_len, eos_token_id=self.eos_token_id):
+            context_len, eos_token_id=self.eos_token_id, is_hf_model=is_hf_model):
             token_id = token.squeeze(0).tolist()
             colorFlush(self.tokenizer.decode(token_id))
