@@ -93,7 +93,7 @@ class GQAttention(nn.Module):
         V = V.view(B,seq_len,self.n_kv_groups,self.head_dim)
         Q, K, V = Q.transpose(1,2), K.transpose(1,2), V.transpose(1,2)
         Q = self.q_norm(Q) if self.q_norm else Q
-        K = self.q_norm(K) if self.k_norm else K
+        K = self.k_norm(K) if self.k_norm else K
         Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len, dtype)
         K = K.repeat_interleave(self.group_size, dim=1)
         V = V.repeat_interleave(self.group_size, dim=1)
