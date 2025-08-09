@@ -79,8 +79,8 @@ class GQAttention(nn.Module):
         self.Wv = nn.Linear(d_in, self.n_kv_groups * self.head_dim, bias=bias, dtype=dtype)
         self.Wo = nn.Linear(self.d_out, d_in, bias=bias, dtype=dtype)
         if self.qk_norm:
-            self.q_norm = RMSNorm(self.head_dim, is_qwen3=is_qwen3, dtype=dtype)
-            self.k_norm = RMSNorm(self.head_dim, is_qwen3=is_qwen3, dtype=dtype)
+            self.q_norm = RMSNorm(self.head_dim, is_qwen3=is_qwen3)
+            self.k_norm = RMSNorm(self.head_dim, is_qwen3=is_qwen3)
         else:
             self.q_norm = self.k_norm = None
 
