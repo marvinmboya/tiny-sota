@@ -32,6 +32,11 @@ class Qwen3_06B_Config:
     rope_base = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
 
+class Llama_Freqs_Config:
+    factor = 32.0
+    low_freq_factor = 1.0
+    high_freq_factor = 4.0
+    
 @dataclass
 class Llama32_1B_Config:
     n_vocab =  128_256
@@ -45,6 +50,7 @@ class Llama32_1B_Config:
     bias: bool = False
     n_kv_groups = 8
     rope_base = 500_000.0
+    freq_config = Llama_Freqs_Config()
     dtype: torch.dtype = torch.bfloat16
 
 @dataclass
