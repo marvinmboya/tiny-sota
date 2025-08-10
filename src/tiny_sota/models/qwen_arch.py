@@ -49,7 +49,7 @@ class Qwen3Model(nn.Module):
         seq_len = x.shape[1]
         mask = torch.triu(torch.ones(seq_len,seq_len, device=x.device, dtype=torch.bool), diagonal=1)
         for decoder in self.decoders:
-            x = decoder(x, self.mask, self.cos, self.sin)
+            x = decoder(x, mask, self.cos, self.sin)
         x = self.rms_norm(x)
         out = self.linear(x)
         return out
