@@ -1,9 +1,35 @@
 import torch 
 from .configs import Qwen_Dummy_Config
 
-def compute_rope_params(head_dim, context_length=4096, theta_base=10_000, dtype=torch.float32):
+def compute_based_on_freq_config(inv_freq, config):
+    context_len = config.context_len
+    factor = config.freq_config.factor
+    low_factor = config.freq_config.low_freq_factor
+    high_factor = config.freq_config.high_freq_factor
+        
+    low_wavelen = context_len / low_factor
+    high_wavelen = context_len / high_factor
+    wavelen = 2 * torch.pi / inv_freq
+
+    inv_freq = torch.where(wavelen > low_wavelen, inv_freq / factor, inv_freq)
+    s_factor = (context_len / wavelen - low_factor) / (high_factor - low_factor)
+    s_inv_freq = ((1 - s_factor) * (inv_freq / factor) + s_factor * inv_freq)
+    is_med_freq = (wavelen <= low_wavelen) & (wavelen >= high_wavelen)
+    inv_freq = torch.where(is_med_freq, s_inv_freq, inv_freq)
+    return inv_freq
+    
+def compute_rope_params(
+    head_dim, context_length=4096, theta_base=10_000, 
+    config=None, dtype=torch.float32
+    ):
     assert head_dim % 2 == 0, "Embedding dimension must be even"
-    inv_freq = 1.0 / (theta_base ** (torch.arange(0, head_dim, 2, dtype=dtype)[: (head_dim // 2)].float() / head_dim))
+    inv_freq = 1.0 / (
+        theta_base ** (
+            torch.arange(0, head_dim, 2, dtype=dtype)[: (head_dim // 2)].float() / head_dim
+        )
+    )
+    if config and config.freq_config is not None:
+        inv_freq = compute_based_on_freq_config(inv_freq, config)
     positions = torch.arange(context_length, dtype=dtype)
     angles = torch.outer(positions,inv_freq)
     angles = torch.cat([angles, angles], dim=1)
@@ -35,10 +61,3 @@ def getModelMemorySize(model, input_dtype=torch.float32):
     total_memory_bytes = (total_params + total_grads + total_buffers) * element_size
     total_memory_gb = total_memory_bytes / (1024**3)
     return total_memory_gb
-
-if __name__ == "__main__":
-    config = Qwen_Dummy_Config()
-    head_dim = config.head_dim
-    context_len = config.context_len
-    cos, sin = compute_rope_params(head_dim, context_len, config.rope_base)
-    print(f"{cos.shape = } {sin.shape = }")
