@@ -27,7 +27,6 @@ class LLMEngine():
         self.tokenizer = loadTokenizer(tokenizer_file, tokenizer_choice, **kwargs) 
         self.eos_token_id = self.tokenizer.eos_token_id
     def __call__(self, prompt, g_config: GenerateConfig, is_hf_model=False):
-
         max_new_tokens = g_config.max_new_tokens
         context_len = g_config.context_len
         device = g_config.device
