@@ -40,7 +40,7 @@ class Llama3Model(nn.Module):
             DecoderBlock(config) for _ in range(layers)])
         self.rms_norm = RMSNorm(emb_dim, eps=1e-5)
         self.linear = nn.Linear(emb_dim, vocab, bias=bias, dtype=dtype)
-        cos, sin = compute_rope_params(head_dim, context_len, config.rope_base)
+        cos, sin = compute_rope_params(head_dim, context_len, config.rope_base, config)
         self.register_buffer("cos", cos, persistent=False)
         self.register_buffer("sin", sin, persistent=False)
 
@@ -49,7 +49,7 @@ class Llama3Model(nn.Module):
         seq_len = x.shape[1]
         mask = torch.triu(torch.ones(seq_len,seq_len, device=x.device, dtype=torch.bool), diagonal=1)
         for decoder in self.decoders:
-            x = decoder(x, self.mask, self.cos, self.sin)
+            x = decoder(x, mask, self.cos, self.sin)
         x = self.rms_norm(x)
         out = self.linear(x)
         return out
