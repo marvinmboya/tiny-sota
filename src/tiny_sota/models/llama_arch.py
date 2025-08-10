@@ -1,12 +1,11 @@
 import torch
+import torch.nn as nn
 
 from .tiny_modules import RMSNorm, TriFeedForward
 from .attention import GQAttention
 from .utils import compute_rope_params
 from .configs import BaseConfig
 
-
-config = Configs.Llama
 
 class DecoderBlock(nn.Module):
     def __init__(self, config: BaseConfig, is_qwen3=True):
@@ -26,9 +25,9 @@ class DecoderBlock(nn.Module):
         x = self.feed_forward(x) + shortcut
         return x
     
-class Llama32Model(nn.Module):
+class Llama3Model(nn.Module):
     def __init__(self, config: BaseConfig):
-        super(Llama32Model, self).__init__()
+        super(Llama3Model, self).__init__()
         vocab = config.n_vocab
         context_len = config.context_len
         emb_dim = config.emb_dim
