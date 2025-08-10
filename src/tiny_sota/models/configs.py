@@ -33,6 +33,21 @@ class Qwen3_06B_Config:
     dtype: torch.dtype = torch.bfloat16
 
 @dataclass
+class Llama32_1B_Config:
+    n_vocab =  128_256
+    context_len = 8_192
+    emb_dim = 1024
+    heads = 32
+    layers = 16
+    hidden_dim = 2048
+    head_dim = 64
+    qk_norm = True
+    bias: bool = False
+    n_kv_groups = 8
+    rope_base = 500_000.0
+    dtype: torch.dtype = torch.bfloat16
+
+@dataclass
 class Qwen_Dummy_Config:
     n_vocab =  1_936
     context_len = 4_096
@@ -47,7 +62,9 @@ class Qwen_Dummy_Config:
     rope_base = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
 
+
 @dataclass
 class Configs:
     Qwen: BaseConfig = Qwen3_06B_Config
+    Llama: BaseConfig = Llama32_1B_Config
     Dummy: BaseConfig = Qwen_Dummy_Config
