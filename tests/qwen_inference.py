@@ -4,8 +4,8 @@ import torch.nn as nn
 
 
 from tiny_sota.models import (
-    transferQwenWeights,
-    loadQwenWeightsAndTok,
+    transferQwen3Weights,
+    loadQwen3WeightsAndTok,
     Qwen3Model, Configs
 )
 from tiny_sota.models.tiny_load import getLocalWeightsDir
@@ -18,8 +18,8 @@ parent = getLocalWeightsDir()
 config = Configs.Qwen
 
 model = Qwen3Model(config)
-weights, tok = loadQwenWeightsAndTok()
-transferQwenWeights(model, config, weights)
+weights, tok = loadQwen3WeightsAndTok()
+transferQwen3Weights(model, config, weights)
 del weights
 
 model.to(device)
