@@ -4,12 +4,12 @@ from .tiny_load import (
     LLMS_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
 
-def fetchQwenWeightsAndTok():
+def fetchQwen3WeightsAndTok():
     Qwen_Meta = LLMS_META.Qwen3_06B
     local_dir = getLocalWeightsDir()
     fetchLLMWeightAndTok(Qwen_Meta, local_dir)
 
-def loadQwenWeightsAndTok():
+def loadQwen3WeightsAndTok():
     Qwen_Meta = LLMS_META.Qwen3_06B
     local_dir = getLocalWeightsDir()
     loc_weight  = local_dir/Qwen_Meta["loc_weight"]
@@ -19,7 +19,7 @@ def loadQwenWeightsAndTok():
     weight_dict = load_file(loc_weight)
     return weight_dict, loc_tok
 
-def transferQwenWeights(model, param_config, params):
+def transferQwen3Weights(model, param_config, params):
     def assign(left, right, tensor_name="unknown"):
         if left.shape != right.shape:
             raise ValueError(f"Shape mismatch in tensor '{tensor_name}'. Left: {left.shape}, Right: {right.shape}")
