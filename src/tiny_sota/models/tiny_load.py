@@ -13,13 +13,13 @@ class LLMS_META:
         "loc_weight": "qwen3_06B.safetensors",
         "loc_tok": "qwen3_06B.json"
     }
-    Llama3_2_1B = {
+    Llama32_1B = {
         "repo_id": "meta-llama/Llama-3.2-1B",
         "commit": "4e20de362430cd3b72f300e6b0f18e50e7166e08",
         "weight_id": "model.safetensors",
         "tok_id": "tokenizer.json",
-        "loc_weight": "llama3_2_1B.safetensors",
-        "loc_tok": "llama3_2_1B.json"
+        "loc_weight": "llama32_1B.safetensors",
+        "loc_tok": "llama32_1B.json"
     }
 
 
