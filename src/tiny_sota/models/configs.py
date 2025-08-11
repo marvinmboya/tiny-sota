@@ -40,7 +40,7 @@ class Llama_Freqs_Config:
 @dataclass
 class Llama32_1B_Config:
     n_vocab =  128_256
-    context_len = 8_192
+    context_len = 131_072
     emb_dim = 2048
     heads = 32
     layers = 16
