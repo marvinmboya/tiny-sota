@@ -18,7 +18,7 @@ class BaseConfig:
     eps: float = 1e-6
 
 @dataclass
-class Qwen3_06B_Config:
+class Qwen3_06B:
     n_vocab =  151_936
     context_len = 40_960
     emb_dim = 1024
@@ -32,13 +32,13 @@ class Qwen3_06B_Config:
     rope_base = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
 
-class Llama_Freqs_Config:
+class Llama_Freqs:
     factor = 32.0
     low_freq_factor = 1.0
     high_freq_factor = 4.0
     
 @dataclass
-class Llama32_1B_Config:
+class Llama32_1B:
     n_vocab =  128_256
     context_len = 131_072
     emb_dim = 2048
@@ -50,11 +50,11 @@ class Llama32_1B_Config:
     bias: bool = False
     n_kv_groups = 8
     rope_base = 500_000.0
-    freq_config = Llama_Freqs_Config()
+    freq_config = Llama_Freqs()
     dtype: torch.dtype = torch.bfloat16
 
 @dataclass
-class Qwen_Dummy_Config:
+class Qwen_Dummy:
     n_vocab =  1_936
     context_len = 4_096
     emb_dim = 1024
