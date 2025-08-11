@@ -1,23 +1,14 @@
 from dataclasses import dataclass
 import torch 
 
-@dataclass
-class GenerateConfig:
-    context_len: int
-    device: torch.device 
-    max_new_tokens: int = 500 
+from ..tiny_utils import get_device 
 
 def generate_text_stream(
-        model, token_ids, max_new_tokens, context_len, 
-        temperature=0.0, top_k=None, eos_token_id=None, is_hf_model=False):
+        model, token_ids, max_new_tokens, 
+        temperature=0.0, top_k=None, eos_token_id=None):
     for _ in range(max_new_tokens):
-        idx_cond = token_ids[:, -context_len:]
         with torch.no_grad():
-            if is_hf_model:
-                logits = model(idx_cond).logits
-            else:
-                logits = model(idx_cond)
-            logits = logits[:, -1]
+            logits = model(token_ids)[:, -1]
         if top_k is not None:
             top_logits, _ = torch.topk(logits, top_k)
             min_val = top_logits[:, -1]
