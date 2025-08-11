@@ -1,5 +1,4 @@
 import torch 
-from .configs import Qwen_Dummy_Config
 
 def compute_based_on_freq_config(inv_freq, config):
     context_len = config.context_len
