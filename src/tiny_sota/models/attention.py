@@ -26,11 +26,10 @@ class Attention(nn.Module):
         emb_dim = config.emb_dim
         d_out = config.d_out
         self.heads = config.heads 
-        self.head_dim = config.head_dim
         bias = config.bias 
         dtype = config.dtype
         self.Wq = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
-        self.Wk = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
+        self.Wk = nn.Linear(emb_dim, d_out, bias=False, dtype=dtype)
         self.Wv = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
         self.Wo = nn.Linear(d_out, emb_dim, bias=bias, dtype=dtype)
 
@@ -41,9 +40,9 @@ class Attention(nn.Module):
         Q = self.Wq(x)
         K = self.Wk(enc_mel or x)
         V = self.Wv(enc_mel or x)
-        Q = Q.view(B,seq_len,self.heads,self.head_dim)
-        K = K.view(B,seq_len,self.heads,self.head_dim)
-        V = V.view(B,seq_len,self.heads,self.head_dim)
+        Q = Q.view(B, seq_len, self.heads, -1)
+        K = K.view(B, seq_len, self.heads, -1)
+        V = V.view(B,seq_len,self.heads, -1)
         if cos is not None:
             Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len, dtype)
         Q = Q.transpose(1,2)
@@ -51,8 +50,8 @@ class Attention(nn.Module):
         V = V.transpose(1,2)
         scores = Q @ K.transpose(-1,-2)
         if mask is not None:
-            scores = scores.masked_fill_(mask, -torch.inf)
-        weights = F.softmax(scores/self.head_dim**.5,dim=-1)
+            scores += mask[:seq_len,:seq_len]
+        weights = F.softmax(scores/K.shape[-1]**.5,dim=-1)
         vectors = weights @ V 
         vectors = vectors.transpose(1,2)
         vectors = vectors.contiguous().view(B,seq_len,dim)
@@ -100,8 +99,8 @@ class GQAttention(nn.Module):
         K = K.repeat_interleave(self.group_size, dim=1)
         V = V.repeat_interleave(self.group_size, dim=1)
         scores = Q @ K.transpose(-1,-2)
-        masked_scores = scores.masked_fill_(mask, -torch.inf)
-        weights = F.softmax(masked_scores/self.head_dim**.5,dim=-1)
+        scores = scores + mask[:seq_len,:seq_len]
+        weights = F.softmax(scores/self.head_dim**.5,dim=-1)
         vectors = weights @ V 
         vectors = vectors.transpose(1,2)
         vectors = vectors.contiguous().view(B,seq_len,self.d_out)
