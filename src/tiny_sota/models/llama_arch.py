@@ -47,7 +47,7 @@ class Llama3Model(nn.Module):
     def forward(self,x):
         x = self.embedding(x)
         seq_len = x.shape[1]
-        mask = torch.triu(torch.ones(seq_len,seq_len, device=x.device, dtype=torch.bool), diagonal=1)
+        mask = torch.empty(seq_len, seq_len, device=x.device).fill_(-torch.inf).triu_(1)
         for decoder in self.decoders:
             x = decoder(x, mask, self.cos, self.sin)
         x = self.rms_norm(x)
