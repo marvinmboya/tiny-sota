@@ -68,9 +68,23 @@ class Qwen_Dummy:
     rope_base = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
 
-
 @dataclass
+class Whisper:
+    n_vocab = 51864
+    n_mels = 80
+    n_audio_ctx = 1500
+    n_audio_state = 384
+    n_audio_head = 6
+    n_audio_layer = 4
+    n_text_ctx = 448
+    n_text_state = 384
+    n_text_head = 6
+    n_text_layer = 4
+    bias = True
+    dtype = torch.float32
+
 class Configs:
-    Qwen: BaseConfig = Qwen3_06B_Config
-    Llama: BaseConfig = Llama32_1B_Config
-    Dummy: BaseConfig = Qwen_Dummy_Config
+    Qwen: BaseConfig = Qwen3_06B
+    Llama: BaseConfig = Llama32_1B
+    Whisper: Whisper = Whisper
+    Dummy: BaseConfig = Qwen_Dummy
