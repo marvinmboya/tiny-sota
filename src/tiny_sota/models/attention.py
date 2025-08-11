@@ -24,37 +24,41 @@ class Attention(nn.Module):
         """
         assert config.emb_dim % config.heads == 0, "dim must be divisible by number of heads"
         emb_dim = config.emb_dim
-        inner_dim = config.heads * config.head_dim
+        d_out = config.d_out
         self.heads = config.heads 
         self.head_dim = config.head_dim
         bias = config.bias 
         dtype = config.dtype
-        self.Wq = nn.Linear(emb_dim, inner_dim, bias=bias, dtype=dtype)
-        self.Wk = nn.Linear(emb_dim, inner_dim, bias=bias, dtype=dtype)
-        self.Wv = nn.Linear(emb_dim, inner_dim, bias=bias, dtype=dtype)
-        self.Wo = nn.Linear(inner_dim, emb_dim, bias=bias, dtype=dtype)
+        self.Wq = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
+        self.Wk = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
+        self.Wv = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
+        self.Wo = nn.Linear(d_out, emb_dim, bias=bias, dtype=dtype)
 
-    def forward(self, x, mask, cos, sin):
+    def forward(self, x, mask=None, cos=None, 
+                sin=None, enc_mel=None):
         B, seq_len, dim = x.shape
         dtype = x.dtype
         Q = self.Wq(x)
-        K = self.Wk(x)
-        V = self.Wv(x)
+        K = self.Wk(enc_mel or x)
+        V = self.Wv(enc_mel or x)
         Q = Q.view(B,seq_len,self.heads,self.head_dim)
         K = K.view(B,seq_len,self.heads,self.head_dim)
         V = V.view(B,seq_len,self.heads,self.head_dim)
-        Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len, dtype)
+        if cos is not None:
+            Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len, dtype)
         Q = Q.transpose(1,2)
         K = K.transpose(1,2)
         V = V.transpose(1,2)
         scores = Q @ K.transpose(-1,-2)
-        masked_scores = scores.masked_fill_(mask, -torch.inf)
-        weights = F.softmax(masked_scores/self.head_dim**.5,dim=-1)
+        if mask is not None:
+            scores = scores.masked_fill_(mask, -torch.inf)
+        weights = F.softmax(scores/self.head_dim**.5,dim=-1)
         vectors = weights @ V 
         vectors = vectors.transpose(1,2)
         vectors = vectors.contiguous().view(B,seq_len,dim)
         out = self.Wo(vectors)
         return out
+
 
 class GQAttention(nn.Module):
     def __init__(self, config: BaseConfig, is_qwen3=False):
