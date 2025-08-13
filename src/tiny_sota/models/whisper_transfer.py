@@ -129,7 +129,11 @@ def transferWhisperWeights(model, config: Whisper_Small, params):
         params[f"decoder.blocks.{i}.mlp.2.weight"], f"decoder.blocks.{i}.mlp.2.weight")
         block.feed_forward[2].bias = assign(block.feed_forward[2].bias, 
         params[f"decoder.blocks.{i}.mlp.2.bias"], f"decoder.blocks.{i}.mlp.2.bias")
-
+    # DECODER LN 
+    decoder.ln.weight = assign(decoder.ln.weight, 
+    params["decoder.ln.weight"], "decoder.ln.weight")
+    decoder.ln.bias = assign(decoder.ln.bias, 
+    params["decoder.ln.bias"], "decoder.ln.bias")
 
 
     
