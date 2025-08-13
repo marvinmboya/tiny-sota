@@ -50,8 +50,9 @@ class DecoderBlock(nn.Module):
             x = self.cross_ln(x)
             x = self.cross_attn(x, enc_mel=enc_mel)
             x = x + shortcut
+        shortcut = x
         x = self.ff_ln(x)
-        x = self.feed_forward(x)
+        x = self.feed_forward(x) + shortcut
         return x
         
 
@@ -102,8 +103,7 @@ class TextDecoder(nn.Module):
         self.register_buffer("mask", mask, persistent=False)
         
     def forward(self, x, enc_mel):
-        x = self.tok_emb(x)
-        x += self.pos_emb[0:x.shape[-1]]
+        x = self.token_emb(x) + self.pos_emb[0:x.shape[-1]]
         x = x.to(enc_mel.dtype)
         for block in self.blocks:
             x = block(x, enc_mel, mask=self.mask)
