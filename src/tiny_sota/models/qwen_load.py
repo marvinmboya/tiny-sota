@@ -1,7 +1,7 @@
 import torch, torch.nn as nn 
 from safetensors.torch import load_file
 from .tiny_load import (
-    LLMS_META, getLocalWeightsDir, fetchLLMWeightAndTok
+    assign, LLMS_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
 
 def fetchQwen3WeightsAndTok():
@@ -20,10 +20,6 @@ def loadQwen3WeightsAndTok():
     return weight_dict, loc_tok
 
 def transferQwen3Weights(model, param_config, params):
-    def assign(left, right, tensor_name="unknown"):
-        if left.shape != right.shape:
-            raise ValueError(f"Shape mismatch in tensor '{tensor_name}'. Left: {left.shape}, Right: {right.shape}")
-        return nn.Parameter(right.clone().detach() if isinstance(right, torch.Tensor) else torch.tensor(right))
     model.embedding.weight = assign(model.embedding.weight, 
         params["model.embed_tokens.weight"], "model.embed_tokens.weight")
     

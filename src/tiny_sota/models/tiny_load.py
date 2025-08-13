@@ -1,3 +1,4 @@
+import torch 
 from huggingface_hub import hf_hub_download
 from pathlib import Path 
 
@@ -79,3 +80,9 @@ def fetchLLMWeightAndTok(meta, local_dir):
         (local_dir/tok_id).rename(tok_path)
     else:
         ColorPrint.Nice(f"{tok_path} exists!")
+
+
+def assign(left, right, tensor_name="unknown"):
+        if left.shape != right.shape:
+            raise ValueError(f"Shape mismatch in tensor '{tensor_name}'. Left: {left.shape}, Right: {right.shape}")
+        return torch.nn.Parameter(right.clone().detach() if isinstance(right, torch.Tensor) else torch.tensor(right))
