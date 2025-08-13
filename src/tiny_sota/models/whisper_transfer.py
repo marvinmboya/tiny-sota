@@ -1,7 +1,10 @@
-from .tiny_load import assign 
+import torch 
+from .tiny_load import assign as assignp
 from .configs import Whisper_Small
 
 def transferWhisperWeights(model, config: Whisper_Small, params):
+    from functools import partial 
+    assign = partial(assignp, cast_to=torch.float32)
     encoder = model.encoder
     # ENCODER CONVS
     encoder.conv1.weight = assign(encoder.conv1.weight, 
@@ -27,8 +30,7 @@ def transferWhisperWeights(model, config: Whisper_Small, params):
         block.attn.Wq.bias = assign(block.attn.Wq.bias, 
         params[f"encoder.blocks.{i}.attn.query.bias"], f"encoder.blocks.{i}.attn.query.bias")
         block.attn.Wk.weight = assign(block.attn.Wk.weight, 
-        params[f"encoder.blocks.{i}.attn.key.weight"], 
-        f"encoder.blocks.{i}.attn.key.weight")
+        params[f"encoder.blocks.{i}.attn.key.weight"], f"encoder.blocks.{i}.attn.key.weight")
         block.attn.Wv.weight = assign(block.attn.Wv.weight, 
         params[f"encoder.blocks.{i}.attn.value.weight"], f"encoder.blocks.{i}.attn.value.weight")
         block.attn.Wv.bias = assign(block.attn.Wv.bias, 
@@ -38,14 +40,30 @@ def transferWhisperWeights(model, config: Whisper_Small, params):
         block.attn.Wo.bias = assign(block.attn.Wo.bias, 
         params[f"encoder.blocks.{i}.attn.out.bias"], f"encoder.blocks.{i}.attn.out.bias")
         # layernorm params
-        block.ln.weight = assign(block.ln.weight, 
-        params[f"encoder.blocks.{i}.attn_ln.weight"], f"encoder.blocks.{i}.attn_ln.weight")
-        block.ln.bias = assign(block.ln.bias, 
-        params[f"encoder.blocks.{i}.attn_ln.bias"], f"encoder.blocks.{i}.attn_ln.bias")
-        block.ff_ln.weight = assign(block.ff_ln.weight, 
-        params[f"encoder.blocks.{i}.mlp_ln.weight"], f"encoder.blocks.{i}.mlp_ln.weight")
-        block.ff_ln.bias = assign(block.ff_ln.bias, 
-        params[f"encoder.blocks.{i}.mlp_ln.bias"], f"encoder.blocks.{i}.mlp_ln.bias")
+        block.ln.weight = assign(
+            block.ln.weight, 
+            params[f"encoder.blocks.{i}.attn_ln.weight"], 
+            f"encoder.blocks.{i}.attn_ln.weight", 
+            cast_to=torch.float32
+        )
+        block.ln.bias = assign(
+            block.ln.bias, 
+            params[f"encoder.blocks.{i}.attn_ln.bias"], 
+            f"encoder.blocks.{i}.attn_ln.bias",
+            cast_to=torch.float32
+        )
+        block.ff_ln.weight = assign(
+            block.ff_ln.weight, 
+            params[f"encoder.blocks.{i}.mlp_ln.weight"], 
+            f"encoder.blocks.{i}.mlp_ln.weight",
+            cast_to=torch.float32
+        )
+        block.ff_ln.bias = assign(
+            block.ff_ln.bias, 
+            params[f"encoder.blocks.{i}.mlp_ln.bias"], 
+            f"encoder.blocks.{i}.mlp_ln.bias",
+            cast_to=torch.float32
+        )
         # mlp params
         block.feed_forward[0].weight = assign(block.feed_forward[0].weight, 
         params[f"encoder.blocks.{i}.mlp.0.weight"], f"encoder.blocks.{i}.mlp.0.weight")
@@ -56,11 +74,17 @@ def transferWhisperWeights(model, config: Whisper_Small, params):
         block.feed_forward[2].bias = assign(block.feed_forward[2].bias, 
         params[f"encoder.blocks.{i}.mlp.2.bias"], f"encoder.blocks.{i}.mlp.2.bias")
     # ENCODER POST LN 
-    encoder.ln.weight = assign(encoder.ln.weight, 
-    params["encoder.ln_post.weight"], "encoder.ln_post.weight")
-    encoder.ln.bias = assign(encoder.ln.bias, 
-    params["encoder.ln_post.bias"], "encoder.ln_post.bias")
-
+    encoder.ln.weight = assign(
+        encoder.ln.weight, 
+        params["encoder.ln_post.weight"], 
+        "encoder.ln_post.weight",
+        cast_to=torch.float32
+    )
+    encoder.ln.bias = assign(
+        encoder.ln.bias, 
+        params["encoder.ln_post.bias"], "encoder.ln_post.bias",
+        cast_to=torch.float32
+    )
     # DECODER ASSIGN
     decoder = model.decoder
     # DECODER POS EMBEDS
@@ -107,19 +131,43 @@ def transferWhisperWeights(model, config: Whisper_Small, params):
         block.cross_attn.Wo.bias = assign(block.cross_attn.Wo.bias, 
         params[f"decoder.blocks.{i}.cross_attn.out.bias"], f"decoder.blocks.{i}.cross_attn.out.bias")
         # layernorm params
-        block.ln.weight = assign(block.ln.weight, 
-        params[f"decoder.blocks.{i}.attn_ln.weight"], f"decoder.blocks.{i}.attn_ln.weight")
-        block.ln.bias = assign(block.ln.bias, 
-        params[f"decoder.blocks.{i}.attn_ln.bias"], f"decoder.blocks.{i}.attn_ln.bias")
-        block.ff_ln.weight = assign(block.ff_ln.weight, 
-        params[f"decoder.blocks.{i}.mlp_ln.weight"], f"decoder.blocks.{i}.mlp_ln.weight")
-        block.ff_ln.bias = assign(block.ff_ln.bias, 
-        params[f"decoder.blocks.{i}.mlp_ln.bias"], f"decoder.blocks.{i}.mlp_ln.bias")
+        block.ln.weight = assign(
+            block.ln.weight, 
+            params[f"decoder.blocks.{i}.attn_ln.weight"], 
+            f"decoder.blocks.{i}.attn_ln.weight",
+            cast_to=torch.float32
+        )
+        block.ln.bias = assign(
+            block.ln.bias, 
+            params[f"decoder.blocks.{i}.attn_ln.bias"], 
+            f"decoder.blocks.{i}.attn_ln.bias",
+            cast_to=torch.float32
+        )
+        block.ff_ln.weight = assign(
+            block.ff_ln.weight, 
+            params[f"decoder.blocks.{i}.mlp_ln.weight"], 
+            f"decoder.blocks.{i}.mlp_ln.weight",
+            cast_to=torch.float32
+        )
+        block.ff_ln.bias = assign(
+            block.ff_ln.bias, 
+            params[f"decoder.blocks.{i}.mlp_ln.bias"], 
+            f"decoder.blocks.{i}.mlp_ln.bias",
+            cast_to=torch.float32
+        )
         # cross layernorm params
-        block.cross_ln.weight = assign(block.cross_ln.weight, 
-        params[f"decoder.blocks.{i}.cross_attn_ln.weight"], f"decoder.blocks.{i}.cross_attn_ln.weight")
-        block.cross_ln.bias = assign(block.cross_ln.bias, 
-        params[f"decoder.blocks.{i}.cross_attn_ln.bias"], f"decoder.blocks.{i}.cross_attn_ln.bias")
+        block.cross_ln.weight = assign(
+            block.cross_ln.weight, 
+            params[f"decoder.blocks.{i}.cross_attn_ln.weight"], 
+            f"decoder.blocks.{i}.cross_attn_ln.weight",
+            cast_to=torch.float32
+        )
+        block.cross_ln.bias = assign(
+            block.cross_ln.bias, 
+            params[f"decoder.blocks.{i}.cross_attn_ln.bias"], 
+            f"decoder.blocks.{i}.cross_attn_ln.bias",
+            cast_to=torch.float32
+        )
         # mlp params
         block.feed_forward[0].weight = assign(block.feed_forward[0].weight, 
         params[f"decoder.blocks.{i}.mlp.0.weight"], f"decoder.blocks.{i}.mlp.0.weight")
@@ -130,10 +178,18 @@ def transferWhisperWeights(model, config: Whisper_Small, params):
         block.feed_forward[2].bias = assign(block.feed_forward[2].bias, 
         params[f"decoder.blocks.{i}.mlp.2.bias"], f"decoder.blocks.{i}.mlp.2.bias")
     # DECODER LN 
-    decoder.ln.weight = assign(decoder.ln.weight, 
-    params["decoder.ln.weight"], "decoder.ln.weight")
-    decoder.ln.bias = assign(decoder.ln.bias, 
-    params["decoder.ln.bias"], "decoder.ln.bias")
+    decoder.ln.weight = assign(
+        decoder.ln.weight, 
+        params["decoder.ln.weight"], 
+        "decoder.ln.weight",
+        cast_to=torch.float32
+    )
+    decoder.ln.bias = assign(
+        decoder.ln.bias, 
+        params["decoder.ln.bias"], 
+        "decoder.ln.bias",
+        cast_to=torch.float32
+    )
 
 
     
