@@ -21,4 +21,8 @@ from .llama_load import (
     transferLlama3Weights
 )
 
+from .whisper_transfer import (
+    transferWhisperWeights
+)
+
 from .tiny_load import showLocalWeights
