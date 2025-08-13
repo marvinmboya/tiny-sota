@@ -82,7 +82,12 @@ def fetchLLMWeightAndTok(meta, local_dir):
         ColorPrint.Nice(f"{tok_path} exists!")
 
 
-def assign(left, right, tensor_name="unknown"):
+def assign(left, right, tensor_name="unknown", cast_to=None):
+        cast_to = cast_to or right.clone().detach().dtype
         if left.shape != right.shape:
             raise ValueError(f"Shape mismatch in tensor '{tensor_name}'. Left: {left.shape}, Right: {right.shape}")
-        return torch.nn.Parameter(right.clone().detach() if isinstance(right, torch.Tensor) else torch.tensor(right))
+        return torch.nn.Parameter(
+            right.clone().detach().to(cast_to) 
+            if isinstance(right, torch.Tensor) 
+            else torch.tensor(right)
+        )
