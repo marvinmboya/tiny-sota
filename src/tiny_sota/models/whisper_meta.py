@@ -1,5 +1,7 @@
-from dataclasses import dataclass 
+from dataclasses import dataclass, field
+import torch 
 from torch import Tensor 
+from typing import List 
 
 def exact_div(x, y):
     assert x % y == 0
@@ -15,9 +17,15 @@ N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE
 N_FRAMES = exact_div(N_SAMPLES, HOP_LENGTH) 
 FRAMES_PER_SECOND = exact_div(SAMPLE_RATE, HOP_LENGTH)
 
-
+@dataclass
+class SpeechOptions:
+    compression_ratio_threshold = 2.4
+    logprob_threshold = -1.0
+    no_speech_threshold =  0.6
+    condition_on_previous_text = True 
+    
 @dataclass(frozen=True)
-class DecodingOptions:
+class DecodeOptions:
     task = "transcribe"
     language = None
     temperature = 0.0
@@ -35,11 +43,11 @@ class DecodingOptions:
     fp16 = True
 
 @dataclass(frozen=True)
-class DecodingResult:
+class DecodeResult:
     audio_features: Tensor
     language: str
     language_probs = None
-    tokens = field(default_factory=list)
+    tokens: List[int] = field(default_factory=list)
     text = ""
     avg_logprob = torch.nan
     no_speech_prob = torch.nan
@@ -73,9 +81,7 @@ class TokenDecoder:
     def reset(self):
         """Initialize any stateful variables for decoding a new sequence"""
 
-    def update(
-        self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor
-    ) -> Tuple[Tensor, bool]:
+    def update(self, tokens, logits, sum_logprobs):
         """Specify how to select the next token, based on the current trace and logits
 
         Parameters
