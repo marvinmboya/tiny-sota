@@ -38,11 +38,11 @@ class Attention(nn.Module):
         B, seq_len, dim = x.shape
         dtype = x.dtype
         Q = self.Wq(x)
-        K = self.Wk(enc_mel or x)
-        V = self.Wv(enc_mel or x)
-        Q = Q.view(B, seq_len, self.heads, -1)
-        K = K.view(B, seq_len, self.heads, -1)
-        V = V.view(B,seq_len,self.heads, -1)
+        K = self.Wk(x if enc_mel is None else enc_mel)
+        V = self.Wv(x if enc_mel is None else enc_mel)
+        Q = Q.view(*Q.shape[:2], self.heads, -1)
+        K = K.view(*K.shape[:2], self.heads, -1)
+        V = V.view(*V.shape[:2],self.heads, -1)
         if cos is not None:
             Q, K = apply_rotary_pos_emb(Q, K, cos, sin, seq_len, dtype)
         Q = Q.transpose(1,2)
