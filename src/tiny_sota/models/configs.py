@@ -94,6 +94,8 @@ class Whisper_Small:
     n_text_state = 768
     n_text_head = 12
     n_text_layer = 12
+    bias = True
+    dtype = torch.float32
 
 class Configs:
     Qwen: BaseConfig = Qwen3_06B
