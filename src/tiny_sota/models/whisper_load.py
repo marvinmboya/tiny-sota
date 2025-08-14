@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F 
 import numpy as np 
-import base64
 import tiktoken 
 import tqdm 
 import sys 
@@ -70,36 +69,7 @@ def log_mel_spectrogram(audio, n_mels, padding=0):
     log_spec = (log_spec + 4.0) / 4.0
     return log_spec
 
-@lru_cache(maxsize=None)
-def get_encoding(enc_name, num_languages):
-    vocab_path = Path(__file__).parents[1]/f"assets/whisper/{enc_name}.tiktoken"
-    ranks = {
-        base64.b64decode(token): int(rank)
-        for token, rank in (line.split() for line in open(vocab_path) if line)
-    }
-    n_vocab = len(ranks)
-    special_tokens = {}
-    specials = [
-        "<|endoftext|>",
-        "<|startoftranscript|>",
-        *[f"<|{lang}|>" for lang in list(LANGUAGES.keys())[:num_languages]],
-        "<|translate|>",
-        "<|transcribe|>",
-        "<|startoflm|>",
-        "<|startofprev|>",
-        "<|nospeech|>",
-        "<|notimestamps|>",
-        *[f"<|{i * 0.02:.2f}|>" for i in range(1501)],
-    ]
-    for token in specials:
-        special_tokens[token] = n_vocab
-        n_vocab += 1
-    return tiktoken.Encoding(
-        name=Path(vocab_path).name,
-        explicit_n_vocab=n_vocab,
-        pat_str=r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""",
-        mergeable_ranks=ranks,
-        special_tokens=special_tokens)
+
 
 def new_segment(*, start, end, seek, tokenizer, tokens, result):
     tokens = tokens.tolist()
@@ -179,20 +149,6 @@ def decode_with_fallback(model, tokenizer, config, compression_ratio_threshold,
         if not needs_fallback:
             break
     return decode_result
-
-def get_tokenizer(*, 
-        language, num_languages = 99, 
-        task = "transcribe", is_multilingual=True):
-    if is_multilingual:
-        enc_name = "multilingual"
-    else:
-        enc_name = "gpt2"
-    encoding = get_encoding(enc_name, num_languages)
-    return Tokenizer(
-        encoding=encoding, 
-        num_languages=num_languages, 
-        language=language, task=task
-    )
 
 def format_timestamp(seconds, always_include_hours = False, decimal_marker = "."):
     assert seconds >= 0, "non-negative timestamp expected"
