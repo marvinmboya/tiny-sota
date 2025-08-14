@@ -72,79 +72,17 @@ def get_suppress_tokens(tokenizer, options):
         suppress_tokens.append(tokenizer.no_speech)
     return tuple(sorted(set(suppress_tokens)))
 
-def get_audio_features(model, mel, options):
-    if options.fp16:
+def get_audio_features(model, mel, config, is_fp16=False):
+    if is_fp16:
         mel = mel.half()
     if mel.shape[-2:] == (
-        options.n_audio_ctx,
-        options.n_audio_state):
+        config.n_audio_ctx,
+        config.n_audio_state):
         audio_features = mel
     else:
         audio_features = model.encoder(mel)
-    if audio_features.dtype != (torch.float16 
-        if options.fp16 else torch.float32):
-        return TypeError(
-            f"audio_features has an incorrect dtype: {audio_features.dtype}"
-        )
     return audio_features
 
-@torch.no_grad()
-def model_detect_language(
-        model, mel, tokenizer, config, 
-        decode_options, init_tok_len):
-    if tokenizer is None:
-        tokenizer = get_tokenizer(
-            language = decode_options.language,
-            task = decode_options.task,
-            is_multilingual = decode_options.is_multilingual)
-    if (tokenizer.language is None
-        or tokenizer.language_token 
-        not in tokenizer.sot_sequence
-    ):
-        raise ValueError(
-            "This model doesn't have language tokens so it can't perform lang id"
-        )
-    single = mel.ndim == 2
-    if single:
-        mel = mel.unsqueeze(0)
-    if mel.shape[-2:] != (config.n_audio_ctx, config.n_audio_state):
-        mel = model.encoder(mel)
-    n_audio = mel.shape[0]
-    x = torch.tensor([[tokenizer.sot]] * n_audio).to(mel.device)  # [n_audio, 1]
-    logits = inference(model, x, mel, init_tok_len)[:, 0]
-    mask = torch.ones(logits.shape[-1], dtype=torch.bool)
-    mask[list(tokenizer.all_language_tokens)] = False
-    logits[:, mask] = -torch.inf
-    language_tokens = logits.argmax(dim=-1)
-    language_token_probs = logits.softmax(dim=-1).cpu()
-    language_probs = [
-        { c: language_token_probs[i, j].item()
-         for j, c in zip(
-            tokenizer.all_language_tokens, 
-            tokenizer.all_language_codes
-        )} for i in range(n_audio)]
-    if single:
-        language_tokens = language_tokens[0]
-        language_probs = language_probs[0]
-    return language_tokens, language_probs
-
-def detect_language(
-     *, model, audio_features, tokenizer, tokens, 
-    config, options, sot_index, init_tok_len
-    ):
-    language = options.language
-    task = options.task
-    languages = [language] * audio_features.shape[0]
-    lang_probs = None
-    if language is None or task == "lang_id":
-        lang_tokens, lang_probs = model_detect_language(
-            model, audio_features, tokenizer, 
-            config, options, init_tok_len
-        )
-        languages = [max(probs, key=probs.get) for probs in lang_probs]
-        if language is None:
-            tokens[:,sot_index+1] = lang_tokens
-    return languages, lang_probs
 
 def compression_ratio(text) -> float:
     text_bytes = text.encode("utf-8")
@@ -158,6 +96,7 @@ class SuppressBlank(LogitFilter):
     def apply(self, logits, tokens):
         if tokens.shape[1]==self.sample_begin:
             logits[:,self.tokenizer.encode(" ")+[self.tokenizer.eot]] = -inf
+
 
 class SuppressTokens(LogitFilter):
     def __init__(self, suppress_tokens):
@@ -182,7 +121,7 @@ class MaximumLikelihoodRanker(SequenceRanker):
             return result
         
         lengths = [[len(t) for t in s] for s in tokens]
-        return [torch.argmax(scores(p, l)) for p, l in zip(sum_logprobs, lengths)]
+        return [np.argmax(scores(p, l)) for p, l in zip(sum_logprobs, lengths)]
 
 class GreedyDecoder(TokenDecoder):
     def __init__(self, temperature, eot):
@@ -191,9 +130,10 @@ class GreedyDecoder(TokenDecoder):
 
     def update(self, tokens, logits, sum_logprobs):
         if self.temperature == 0:
-            next_tokens = logits.torch.argmax(dim=-1)
+            next_tokens = logits.argmax(dim=-1)
         else:
             next_tokens = Categorical(logits=logits / self.temperature).sample()
+        print("ARGMAX ", logits.argmax(-1))
         logprobs = F.log_softmax(logits.float(), dim=-1)
         current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]
         sum_logprobs += current_logprobs * (tokens[:, -1] != self.eot)
@@ -255,26 +195,26 @@ def inference(model, tokens, audio_features, init_tok_len):
         tokens = tokens[:, -1:]
     return model.decoder(tokens, audio_features)
 
+    
 class DecodeTask:
     sequence_ranker = None
     decoder = None
     logit_filters = None
-    def __init__(self, model, config, decode_options):
+    def __init__(self, model, tokenizer, config, decode_options: DecodeOptions):
         options = decode_options
-        self.model = model        
-        language = getattr(options, "language", "en")
+        self.model = model      
+        self.config = config  
         task = getattr(options, "task", "transcribe")
-        is_multilingual = getattr(options, "is_multilingual", True)
-        tokenizer = get_tokenizer(
-            language = language, task = task,
-            is_multilingual = is_multilingual)
         self.tokenizer = tokenizer
         self.options = verify_options(options)
+        self.options.language = getattr(options, "language", "en") or "en"
+        self.options.is_multilingual = getattr(options, "is_multilingual", True)
         
         self.n_group = options.beam_size or options.best_of or 1
         self.n_ctx = config.n_text_ctx
         self.sample_len = options.sample_len or config.n_text_ctx // 2
         self.sot_sequence = tokenizer.sot_sequence
+    
         if self.options.without_timestamps:
             self.sot_sequence = tokenizer.sot_sequence_including_notimestamps            
         self.initial_tokens = get_initial_tokens(
@@ -314,19 +254,20 @@ class DecodeTask:
         n_batch = tokens.shape[0]
         sum_logprobs = torch.zeros(n_batch, device=audio_features.device)
         no_speech_probs = [torch.nan] * n_batch
-
         for i in range(self.sample_len):
             logits = inference(self.model, tokens, audio_features, self.init_tok_len)
             if (i==0 and self.tokenizer.no_speech is not None):
                 probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)
                 no_speech_probs = probs_at_sot[:, self.tokenizer.no_speech].tolist()
             logits = logits[:, -1]
-
             for logit_filter in self.logit_filters:
                 logit_filter.apply(logits, tokens)
             tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)
             if completed or tokens.shape[-1] > self.n_ctx:
                 break
+            if i == 10:
+                import sys; sys.exit(0)
+            
         return tokens, sum_logprobs, no_speech_probs
 
     @torch.no_grad()
@@ -335,32 +276,17 @@ class DecodeTask:
         tokenizer = self.tokenizer
         n_audio = mel.shape[0]
 
-        audio_features = get_audio_features(mel, self.options)
+        audio_features = get_audio_features(self.model, mel, self.config, self.options.fp16)
         tokens = torch.tensor([self.initial_tokens]).repeat(n_audio, 1)
 
-        languages, language_probs = detect_language(
-            model = self.model, 
-            audio_features = audio_features, 
-            tokenizer = tokenizer, 
-            tokens = tokens, 
-            config = self.config,
-            options = self.options, 
-            spt_index = self.sot_index
-        )
-        if self.options.task == "lang_id":
-            return [
-                DecodingResult(
-                    audio_features=features, 
-                    language=language, 
-                    language_probs=probs
-                )
-                for features, language, probs in zip(
-                    audio_features, languages, language_probs
-                )
-            ]
-        
+        languages = [self.options.language] * audio_features.shape[0]
+        language_probs = None
+        # ARCHIVE DETECT LANGUAGE CODE
+
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
         tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)
+        print(tokens, sum_logprobs)
+        import sys; sys.exit(0)
         audio_features = audio_features[:: self.n_group]
         no_speech_probs = no_speech_probs[:: self.n_group]
         assert audio_features.shape[0] == len(no_speech_probs) == n_audio
@@ -368,6 +294,7 @@ class DecodeTask:
         sum_logprobs = sum_logprobs.reshape(n_audio, self.n_group)
         tokens, sum_logprobs = self.decoder.finalize(tokens, sum_logprobs)
         
+
         tokens = [
             [t[self.sample_begin : (t == tokenizer.eot).nonzero()[0, 0]] for t in s]
             for s in tokens
@@ -392,7 +319,7 @@ class DecodeTask:
             raise RuntimeError(f"inconsistent result lengths: {list(map(len, fields))}")
         
         return [
-            DecodingResult(
+            DecodeResult(
                 audio_features=features,
                 language=language,
                 tokens=tokens,
@@ -406,3 +333,6 @@ class DecodeTask:
                 *fields
             )
         ]
+
+
+
