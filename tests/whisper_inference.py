@@ -6,20 +6,16 @@ from tiny_sota.models import (
 )
 
 from tiny_sota.models.whisper_load import (
-    load_audio, log_mel_spectrogram, get_tokenizer,
+    load_audio, log_mel_spectrogram,
     N_SAMPLES, N_FRAMES, HOP_LENGTH, 
     SAMPLE_RATE, FRAMES_PER_SECOND, transcribe 
 )
+
+from tiny_sota.models.whisper_tok import get_tokenizer
 from tiny_sota.models.whisper_meta import SpeechOptions, DecodeOptions
 from tiny_sota.tiny_utils import get_device
 
 device = get_device()
-
-@torch.no_grad()
-def infer(model, x):
-    model.eval()
-    out = model(x)
-    return out
 
 config = Configs.Whisper()
 model = Whisper(config)
@@ -31,23 +27,22 @@ transferWhisperWeights(model, config, pretrained_weights)
 del pretrained_model, pretrained_weights
 model.to(device)
 
-tokenizer = get_tokenizer(language="en")
-audio = load_audio("./english.wav")
-mel = log_mel_spectrogram(audio, config.n_mels, padding=N_SAMPLES)
+def run_whisper(audio_path, *, language="en", task="transcribe"):
+    tokenizer = get_tokenizer(language=language, task=task)
+    audio = load_audio(audio_path)
+    mel = log_mel_spectrogram(audio, config.n_mels, padding=N_SAMPLES)
+    out = transcribe(
+        model = model, 
+        tokenizer=tokenizer, 
+        mel = mel, 
+        config = config, 
+        speech_options=SpeechOptions(),
+        decode_options=DecodeOptions()
+    )
+    print(out['text'])
 
-out = transcribe(
-    model = model, 
-    tokenizer=tokenizer, 
-    mel = mel, 
-    config = config, 
-    speech_options=SpeechOptions(),
-    decode_options=DecodeOptions()
-)
-
-print(out['text'])
-import sys; sys.exit(0)
-audio = load_audio("english.wav")
-content_frames = mel.shape[-1] - N_FRAMES
-content_duration = float(content_frames * HOP_LENGTH / SAMPLE_RATE)
+run_whisper("./english.wav")
+run_whisper("./japanese.mp3")
+run_whisper("./japanese.mp3", task="translate")
 
 
