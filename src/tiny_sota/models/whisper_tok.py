@@ -1,14 +1,15 @@
 import tiktoken 
 from dataclasses import dataclass, field
-from functools import cached_property
+from functools import cached_property, lru_cache
+from pathlib import Path 
+import string 
+import base64
 
 from typing import List, Optional, Tuple, Dict  
 from .whisper_meta import LANGUAGES
 
 @dataclass
 class Tokenizer:
-    """A thin wrapper around `tiktoken` providing quick access to special tokens"""
-
     encoding: tiktoken.Encoding
     num_languages: int
     language: Optional[str] = None
@@ -117,47 +118,22 @@ class Tokenizer:
 
     @cached_property
     def non_speech_tokens(self) -> Tuple[int]:
-        """
-        Returns the list of tokens to suppress in order to avoid any speaker tags or non-speech
-        annotations, to prevent sampling texts that are not actually spoken in the audio, e.g.
-
-        - ♪♪♪
-        - ( SPEAKING FOREIGN LANGUAGE )
-        - [DAVID] Hey there,
-
-        keeping basic punctuations like commas, periods, question marks, exclamation points, etc.
-        """
         symbols = list('"#()*+/:;<=>@[\\]^_`{|}~「」『』')
         symbols += (
             "<< >> <<< >>> -- --- -( -[ (' (\" (( )) ((( ))) [[ ]] {{ }} ♪♪ ♪♪♪".split()
         )
-
-        # symbols that may be a single token or multiple tokens depending on the tokenizer.
-        # In case they're multiple tokens, suppress the first token, which is safe because:
-        # These are between U+2640 and U+267F miscellaneous symbols that are okay to suppress
-        # in generations, and in the 3-byte UTF-8 representation they share the first two bytes.
         miscellaneous = set("♩♪♫♬♭♮♯")
         assert all(0x2640 <= ord(c) <= 0x267F for c in miscellaneous)
-
-        # allow hyphens "-" and single quotes "'" between words, but not at the beginning of a word
         result = {self.encoding.encode(" -")[0], self.encoding.encode(" '")[0]}
         for symbol in symbols + list(miscellaneous):
-            for tokens in [
-                self.encoding.encode(symbol),
-                self.encoding.encode(" " + symbol),
-            ]:
+            for tokens in [self.encoding.encode(symbol),self.encoding.encode(" " + symbol)]:
                 if len(tokens) == 1 or symbol in miscellaneous:
                     result.add(tokens[0])
-
         return tuple(sorted(result))
 
     def split_to_word_tokens(self, tokens: List[int]):
         if self.language in {"zh", "ja", "th", "lo", "my", "yue"}:
-            # These languages don't typically use spaces, so it is difficult to split words
-            # without morpheme analysis. Here, we instead split words at any
-            # position where the tokens are decoded as valid unicode points
             return self.split_tokens_on_unicode(tokens)
-
         return self.split_tokens_on_spaces(tokens)
 
     def split_tokens_on_unicode(self, tokens: List[int]):
@@ -172,17 +148,13 @@ class Tokenizer:
         for token in tokens:
             current_tokens.append(token)
             decoded = self.decode_with_timestamps(current_tokens)
-
-            if (
-                replacement_char not in decoded
-                or decoded_full[unicode_offset + decoded.index(replacement_char)]
-                == replacement_char
-            ):
+            if (replacement_char not in decoded or 
+                decoded_full[unicode_offset + decoded.index(replacement_char)]
+                == replacement_char):
                 words.append(decoded)
                 word_tokens.append(current_tokens)
                 current_tokens = []
                 unicode_offset += len(decoded)
-
         return words, word_tokens
 
     def split_tokens_on_spaces(self, tokens: List[int]):
@@ -200,6 +172,47 @@ class Tokenizer:
             else:
                 words[-1] = words[-1] + subword
                 word_tokens[-1].extend(subword_tokens)
-
         return words, word_tokens
 
+@lru_cache(maxsize=None)
+def get_encoding(enc_name, num_languages):
+    vocab_path = Path(__file__).parents[1]/f"assets/whisper/{enc_name}.tiktoken"
+    ranks = {base64.b64decode(token): int(rank)
+        for token, rank in (line.split() for line in open(vocab_path) if line)}
+    n_vocab = len(ranks)
+    special_tokens = {}
+    specials = [
+        "<|endoftext|>",
+        "<|startoftranscript|>",
+        *[f"<|{lang}|>" for lang in list(LANGUAGES.keys())[:num_languages]],
+        "<|translate|>",
+        "<|transcribe|>",
+        "<|startoflm|>",
+        "<|startofprev|>",
+        "<|nospeech|>",
+        "<|notimestamps|>",
+        *[f"<|{i * 0.02:.2f}|>" for i in range(1501)],
+    ]
+    for token in specials:
+        special_tokens[token] = n_vocab
+        n_vocab += 1
+    return tiktoken.Encoding(
+        name=Path(vocab_path).name,
+        explicit_n_vocab=n_vocab,
+        pat_str=r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""",
+        mergeable_ranks=ranks,
+        special_tokens=special_tokens)
+
+def get_tokenizer(*, 
+        language, num_languages = 99, 
+        task = "transcribe", is_multilingual=True):
+    if is_multilingual:
+        enc_name = "multilingual"
+    else:
+        enc_name = "gpt2"
+    encoding = get_encoding(enc_name, num_languages)
+    return Tokenizer(
+        encoding=encoding, 
+        num_languages=num_languages, 
+        language=language, task=task
+    )
