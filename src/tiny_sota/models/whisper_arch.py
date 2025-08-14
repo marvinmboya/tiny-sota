@@ -39,16 +39,16 @@ class DecoderBlock(nn.Module):
             nn.Linear(n_state * 4, n_state)
         )
         self.ff_ln = LayerNorm(n_state) 
-    def forward(self, x, enc_mel = None, mask = None):
+    def forward(self, x, enc_mel=None, mask=None, kv_cache=None):
         shortcut = x
         x = self.ln(x)
-        x = self.attn(x, mask)
+        x = self.attn(x, mask, kv_cache=kv_cache)
         x += shortcut
 
         if self.cross_attn:
             shortcut = x
             x = self.cross_ln(x)
-            x = self.cross_attn(x, enc_mel=enc_mel)
+            x = self.cross_attn(x, enc_mel=enc_mel, kv_cache=kv_cache)
             x = x + shortcut
         shortcut = x
         x = self.ff_ln(x)
@@ -102,11 +102,12 @@ class TextDecoder(nn.Module):
         mask = torch.empty(n_ctx,n_ctx).fill_(-torch.inf).triu_(1)
         self.register_buffer("mask", mask, persistent=False)
         
-    def forward(self, x, enc_mel):
-        x = self.token_emb(x) + self.pos_emb[0:x.shape[-1]]
+    def forward(self, x, enc_mel, kv_cache=None):
+        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
+        x = self.token_emb(x) + self.pos_emb[offset: offset + x.shape[-1]]
         x = x.to(enc_mel.dtype)
         for block in self.blocks:
-            x = block(x, enc_mel, mask=self.mask)
+            x = block(x, enc_mel, mask=self.mask, kv_cache=kv_cache)
         x = self.ln(x)
         token_emb = self.token_emb.weight.to(x.dtype)
         logits = (x @ token_emb.transpose(0,1)).float()
