@@ -188,13 +188,6 @@ class ApplyTimestampRules(LogitFilter):
             max_text_token_logprob = logprobs[k, :time_begin].max()
             if timestamp_logprob > max_text_token_logprob:
                 logits[k, :time_begin] = -inf
-
-@torch.no_grad()
-def inference(model, tokens, audio_features, init_tok_len):
-    if tokens.shape[-1] > init_tok_len:
-        tokens = tokens[:, -1:]
-    return model.decoder(tokens, audio_features)
-
     
 class DecodeTask:
     sequence_ranker = None
@@ -223,7 +216,7 @@ class DecodeTask:
         )
         self.sample_begin = len(self.initial_tokens)
         self.sot_index = self.initial_tokens.index(tokenizer.sot)
-        self.init_tok_len = len(self.initial_tokens)
+        self.inference = CachedInference(model, len(self.initial_tokens))
 
         self.sequence_ranker = MaximumLikelihoodRanker(options.length_penalty)
         self.decoder = GreedyDecoder(options.temperature, tokenizer.eot)
@@ -255,7 +248,7 @@ class DecodeTask:
         sum_logprobs = torch.zeros(n_batch, device=audio_features.device)
         no_speech_probs = [torch.nan] * n_batch
         for i in range(self.sample_len):
-            logits = inference(self.model, tokens, audio_features, self.init_tok_len)
+            logits = self.inference.logits(tokens, audio_features)
             if (i==0 and self.tokenizer.no_speech is not None):
                 probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)
                 no_speech_probs = probs_at_sot[:, self.tokenizer.no_speech].tolist()
@@ -336,3 +329,38 @@ class DecodeTask:
 
 
 
+class Inference:
+    def logits(self, tokens, audio_features):
+        raise NotImplementedError
+
+    def rearrange_kv_cache(self, source_indices) -> None:
+        raise NotImplementedError
+
+    def cleanup_caching(self) -> None:
+        pass
+
+
+class CachedInference(Inference):
+    def __init__(self, model, initial_token_length: int):
+        self.model = model
+        self.initial_token_length = initial_token_length
+        self.kv_cache = {}
+        self.hooks = []
+
+        key_modules = [block.attn.Wk for block in self.model.decoder.blocks]
+        value_modules = [block.attn.Wv for block in self.model.decoder.blocks]
+        self.kv_modules = key_modules + value_modules
+
+    def logits(self, tokens, audio_features):
+        if not self.kv_cache:
+            self.kv_cache, self.hooks = self.model.install_kv_cache_hooks()
+        if tokens.shape[-1] > self.initial_token_length:
+            tokens = tokens[:, -1:]
+        return self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
+
+    def cleanup_caching(self):
+        for hook in self.hooks:
+            hook.remove()
+
+        self.kv_cache = {}
+        self.hooks = []
