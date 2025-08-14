@@ -33,13 +33,16 @@ class Attention(nn.Module):
         self.Wv = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
         self.Wo = nn.Linear(d_out, emb_dim, bias=bias, dtype=dtype)
 
-    def forward(self, x, mask=None, cos=None, 
-                sin=None, enc_mel=None):
+    def forward(self, x, mask=None, cos=None, sin=None, enc_mel=None, kv_cache=None):
         B, seq_len, dim = x.shape
         dtype = x.dtype
         Q = self.Wq(x)
-        K = self.Wk(x if enc_mel is None else enc_mel)
-        V = self.Wv(x if enc_mel is None else enc_mel)
+        if kv_cache is None or enc_mel is None or self.Wk not in kv_cache:
+            K = self.Wk(x if enc_mel is None else enc_mel)
+            V = self.Wv(x if enc_mel is None else enc_mel)
+        else:
+            K = kv_cache[self.Wk]
+            V = kv_cache[self.Wv]
         Q = Q.view(*Q.shape[:2], self.heads, -1)
         K = K.view(*K.shape[:2], self.heads, -1)
         V = V.view(*V.shape[:2],self.heads, -1)
