@@ -372,8 +372,8 @@ def transcribe(
                     segment["text"] = ""
                     segment["tokens"] = []
                     segment["words"] = []
-            all_segments.extend = None([
-                {"id = None": i, **segment}
+            all_segments.extend([
+                {"id": i, **segment}
                 for i, segment in enumerate(current_segments, start=len(all_segments))
                 ])
             all_tokens.extend(

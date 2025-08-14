@@ -1,16 +1,18 @@
 import torch 
 import torch.nn.functional as F
-from torch import inf 
+from numpy import inf 
+import sys 
+import numpy as np 
 from torch.distributions import Categorical
 import zlib 
 
-from .whisper_load import get_tokenizer 
 from .whisper_meta import (
     LogitFilter, 
     SequenceRanker, 
     TokenDecoder,
     CHUNK_LENGTH,
-    DecodingResult
+    DecodeOptions,
+    DecodeResult
 ) 
 
 def verify_options(options):
