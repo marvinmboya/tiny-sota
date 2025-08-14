@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import torch 
 from torch import Tensor 
-from typing import List 
+from typing import List, Dict, Optional, Union, Iterable
 
 def exact_div(x, y):
     assert x % y == 0
@@ -24,35 +24,36 @@ class SpeechOptions:
     no_speech_threshold =  0.6
     condition_on_previous_text = True 
     
-@dataclass(frozen=True)
+@dataclass
 class DecodeOptions:
-    task = "transcribe"
-    language = None
-    temperature = 0.0
-    sample_len = None
-    best_of = None
-    beam_size = None
-    patience = None
-    length_penalty = None
-    prompt = None
-    prefix = None
-    suppress_tokens = "-1"
-    suppress_blank = True
-    without_timestamps = False
-    max_initial_timestamp = 1.0
-    fp16 = True
+    task: str = "transcribe"
+    language: Optional[str] = "en"
+    temperature: float = 0.0
+    sample_len: Optional[int] = None
+    best_of: Optional[int] = None
+    beam_size: Optional[int] = None
+    patience: Optional[float] = None
+    length_penalty: Optional[float] = None
+    prompt: Optional[Union[str, List[int]]] = None
+    prefix: Optional[Union[str, List[int]]] = None
+    suppress_tokens: Optional[Union[str, Iterable[int]]] = "-1"
+    suppress_blank: bool = True
+    without_timestamps: bool = False
+    max_initial_timestamp: Optional[float] = 1.0
+    fp16: bool = False
 
-@dataclass(frozen=True)
+
+@dataclass
 class DecodeResult:
     audio_features: Tensor
     language: str
-    language_probs = None
+    language_probs: Optional[Dict[str, float]] = None
     tokens: List[int] = field(default_factory=list)
-    text = ""
-    avg_logprob = torch.nan
-    no_speech_prob = torch.nan
-    temperature = torch.nan
-    compression_ratio = torch.nan
+    text: str = ""
+    avg_logprob: float = torch.nan
+    no_speech_prob: float = torch.nan
+    temperature: float = torch.nan
+    compression_ratio: float = torch.nan
 
 class LogitFilter:
     def apply(self, logits, tokens):
