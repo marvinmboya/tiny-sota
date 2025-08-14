@@ -123,4 +123,19 @@ class Whisper(nn.Module):
     def forward(self, x, mels):
         encoded_mels = self.encoder(mels)
         return self.decoder(x, encoded_mels)
+    def install_kv_cache_hooks(self, cache=None):
+        cache = {**cache} if cache is not None else {}
+        hooks = []
+        def save_to_cache(module, _, output):
+            if module not in cache or output.shape[1] > self.config.n_text_ctx:
+                cache[module] = output
+            else:
+                cache[module] = torch.cat([cache[module], output], dim=1).detach()
+            return cache[module]
+        def install_hooks(layer: nn.Module):
+            if isinstance(layer, MultiHeadAttention):
+                hooks.append(layer.Wk.register_forward_hook(save_to_cache))
+                hooks.append(layer.Wv.register_forward_hook(save_to_cache))
+        self.decoder.apply(install_hooks)
+        return cache, hooks
     
