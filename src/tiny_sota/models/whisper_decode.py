@@ -133,7 +133,6 @@ class GreedyDecoder(TokenDecoder):
             next_tokens = logits.argmax(dim=-1)
         else:
             next_tokens = Categorical(logits=logits / self.temperature).sample()
-        print("ARGMAX ", logits.argmax(-1))
         logprobs = F.log_softmax(logits.float(), dim=-1)
         current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]
         sum_logprobs += current_logprobs * (tokens[:, -1] != self.eot)
@@ -258,9 +257,6 @@ class DecodeTask:
             tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)
             if completed or tokens.shape[-1] > self.n_ctx:
                 break
-            if i == 10:
-                import sys; sys.exit(0)
-            
         return tokens, sum_logprobs, no_speech_probs
 
     @torch.no_grad()
@@ -274,12 +270,9 @@ class DecodeTask:
 
         languages = [self.options.language] * audio_features.shape[0]
         language_probs = None
-        # ARCHIVE DETECT LANGUAGE CODE
 
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
         tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)
-        print(tokens, sum_logprobs)
-        import sys; sys.exit(0)
         audio_features = audio_features[:: self.n_group]
         no_speech_probs = no_speech_probs[:: self.n_group]
         assert audio_features.shape[0] == len(no_speech_probs) == n_audio
@@ -287,7 +280,6 @@ class DecodeTask:
         sum_logprobs = sum_logprobs.reshape(n_audio, self.n_group)
         tokens, sum_logprobs = self.decoder.finalize(tokens, sum_logprobs)
         
-
         tokens = [
             [t[self.sample_begin : (t == tokenizer.eot).nonzero()[0, 0]] for t in s]
             for s in tokens
@@ -296,7 +288,6 @@ class DecodeTask:
         selected = self.sequence_ranker.rank(tokens, sum_logprobs)
         tokens = [t[i].tolist() for i, t in zip(selected, tokens)]
         texts = [tokenizer.decode(t).strip() for t in tokens]
-
         sum_logprobs = [lp[i] for i, lp in zip(selected, sum_logprobs)]
         avg_logprobs = [lp / (len(t) + 1) for t, lp in zip(tokens, sum_logprobs)]
 
@@ -326,8 +317,6 @@ class DecodeTask:
                 *fields
             )
         ]
-
-
 
 class Inference:
     def logits(self, tokens, audio_features):
