@@ -20,7 +20,8 @@ from .whisper_meta import (
     N_FRAMES, FRAMES_PER_SECOND,
     exact_div
 )
-# from .whisper_decode import DecodeTask
+
+from .whisper_decode import DecodeTask
 from .whisper_tok import Tokenizer
 
 def load_audio(audio_path, sample_rate = SAMPLE_RATE):
@@ -137,8 +138,17 @@ def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
 
     return array
 
+@torch.no_grad()
+def invoke_decode_task(model, tokenizer, mel, config, decode_options):
+    if single := mel.ndim == 2:
+        mel = mel.unsqueeze(0)
+    result = DecodeTask(model, tokenizer, config, decode_options).run(mel)
+    return result[0] if single else result
+
 def decode_with_fallback(
         model, 
+        tokenizer,
+        config,
         compression_ratio_threshold,
         logprob_threshold,
         no_speech_threshold, 
@@ -147,14 +157,15 @@ def decode_with_fallback(
     temperatures = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
     decode_result = None
     for t in temperatures:
-        kwargs = {**decode_options}
         if t > 0:
-            kwargs.pop("beam_size", None)
-            kwargs.pop("patience", None)
+            decode_options.beam_size = None
+            decode_options.patience = None
         else:
-            kwargs.pop("best_of", None)
-        options = DecodeOptions(**kwargs, temperature=t)
-        decode_result = model.decode(segment, options)
+            decode_options.best_of = None
+        decode_options.temperature=t
+        decode_result = invoke_decode_task(model, tokenizer, segment, config, decode_options)
+        print(decode_result)
+        sys.exit(0)
         needs_fallback = False
         if (
             compression_ratio_threshold is not None
@@ -179,8 +190,8 @@ def decode_with_fallback(
     return decode_result
 
 def get_tokenizer(*, 
-        language = None, num_languages = 99, 
-        task = None, is_multilingual=True):
+        language, num_languages = 99, 
+        task = "transcribe", is_multilingual=True):
     if is_multilingual:
         enc_name = "multilingual"
     else:
@@ -216,12 +227,7 @@ else:
     def make_safe(string):
         return string
     
-# @torch.no_grad()
-# def invoke_decode_task(model, mel, decode_options = DecodeOptions()):
-#     if single := mel.ndim == 2:
-#         mel = mel.unsqueeze(0)
-#     result = DecodeTask(model, decode_options).run(mel)
-#     return result[0] if single else result
+
 
 def transcribe(
         *, model, tokenizer, mel, 
@@ -233,11 +239,10 @@ def transcribe(
         ):
     n_audio_ctx = config.n_audio_ctx 
     n_text_ctx = config.n_text_ctx 
+    device = "cpu"
     condition_on_previous_text = speech_options.condition_on_previous_text
-
-    dtype = torch.float16 if hasattr(decode_options, "fp16", True) else torch.float32
-    if dtype == torch.float32:
-        decode_options.fp16 = False
+    decode_options.language = getattr(decode_options, "language", "en") or "en"
+    dtype = torch.float16 if getattr(decode_options, "fp16", True) else torch.float32
     content_frames = mel.shape[-1] - N_FRAMES
     clip_timestamps = "0"
     if isinstance(clip_timestamps, str):
@@ -263,7 +268,6 @@ def transcribe(
         remaining_prompt_length -= len(initial_prompt_tokens)
     else:
         initial_prompt_tokens = []
-
     with tqdm.tqdm(
         total=content_frames, 
         unit="frames",
@@ -278,19 +282,23 @@ def transcribe(
                     seek = seek_clips[clip_idx][0]
                 continue
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
-            window_end_time = float((seek + N_FRAMES) * HOP_LENGTH / SAMPLE_RATE)
             segment_size = min(N_FRAMES, content_frames - seek, seek_clip_end - seek)
             mel_segment = mel[:, seek : seek + segment_size]
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
-            mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
+            mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(device).to(dtype)
             decode_options.prompt = all_tokens[prompt_reset_since:]
             result = decode_with_fallback(
                 model, 
+                tokenizer,
+                config,
                 speech_options.compression_ratio_threshold,
                 speech_options.logprob_threshold,
                 speech_options.no_speech_threshold, 
                 segment = mel_segment,
                 decode_options=decode_options)
+            print(result)
+            sys.exit(0)
+
             tokens = torch.tensor(result.tokens)
             if speech_options.no_speech_threshold is not None:
                 should_skip = result.no_speech_prob > speech_options.no_speech_threshold
@@ -385,7 +393,7 @@ def transcribe(
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
         segments=all_segments,
-        language=language)
+        language=decode_options.language)
    
 def play_audio(audio):
     audio = audio.unsqueeze(-1)
