@@ -246,17 +246,20 @@ class DecodeTask:
         n_batch = tokens.shape[0]
         sum_logprobs = torch.zeros(n_batch, device=audio_features.device)
         no_speech_probs = [torch.nan] * n_batch
-        for i in range(self.sample_len):
-            logits = self.inference.logits(tokens, audio_features)
-            if (i==0 and self.tokenizer.no_speech is not None):
-                probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)
-                no_speech_probs = probs_at_sot[:, self.tokenizer.no_speech].tolist()
-            logits = logits[:, -1]
-            for logit_filter in self.logit_filters:
-                logit_filter.apply(logits, tokens)
-            tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)
-            if completed or tokens.shape[-1] > self.n_ctx:
-                break
+        try:
+            for i in range(self.sample_len):
+                logits = self.inference.logits(tokens, audio_features)
+                if (i==0 and self.tokenizer.no_speech is not None):
+                    probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)
+                    no_speech_probs = probs_at_sot[:, self.tokenizer.no_speech].tolist()
+                logits = logits[:, -1]
+                for logit_filter in self.logit_filters:
+                    logit_filter.apply(logits, tokens)
+                tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)
+                if completed or tokens.shape[-1] > self.n_ctx:
+                    break
+        finally:
+            self.inference.cleanup_caching()
         return tokens, sum_logprobs, no_speech_probs
 
     @torch.no_grad()
@@ -269,8 +272,6 @@ class DecodeTask:
         tokens = torch.tensor([self.initial_tokens]).repeat(n_audio, 1)
 
         languages = [self.options.language] * audio_features.shape[0]
-        language_probs = None
-
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
         tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)
         audio_features = audio_features[:: self.n_group]
@@ -291,14 +292,8 @@ class DecodeTask:
         sum_logprobs = [lp[i] for i, lp in zip(selected, sum_logprobs)]
         avg_logprobs = [lp / (len(t) + 1) for t, lp in zip(tokens, sum_logprobs)]
 
-        fields = (
-            texts,
-            languages,
-            tokens,
-            audio_features,
-            avg_logprobs,
-            no_speech_probs,
-        )
+        fields = (texts, languages, tokens, 
+                  audio_features, avg_logprobs, no_speech_probs)
         if len(set(map(len, fields))) != 1:
             raise RuntimeError(f"inconsistent result lengths: {list(map(len, fields))}")
         
