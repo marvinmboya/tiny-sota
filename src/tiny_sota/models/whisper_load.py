@@ -64,7 +64,6 @@ def log_mel_spectrogram(audio, n_mels, padding=0):
             window=window, return_complex=True)
     magnitudes = stft[..., :-1].abs() ** 2
     filters = mel_filters(audio.device, n_mels)
-    print(f"{filters.shape = }")
     mel_spec = filters @ magnitudes
     log_spec = torch.clamp(mel_spec, min=1e-10).log10()
     log_spec = torch.maximum(log_spec, log_spec.max() - 8.0)
@@ -116,6 +115,7 @@ def new_segment(*, start, end, seek, tokenizer, tokens, result):
         "compression_ratio": result.compression_ratio,
         "no_speech_prob": result.no_speech_prob,
     }
+
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
     if torch.is_tensor(array):
         if array.shape[axis] > length:
@@ -145,15 +145,8 @@ def invoke_decode_task(model, tokenizer, mel, config, decode_options):
     result = DecodeTask(model, tokenizer, config, decode_options).run(mel)
     return result[0] if single else result
 
-def decode_with_fallback(
-        model, 
-        tokenizer,
-        config,
-        compression_ratio_threshold,
-        logprob_threshold,
-        no_speech_threshold, 
-        *,segment,
-        decode_options): 
+def decode_with_fallback(model, tokenizer, config, compression_ratio_threshold,
+        logprob_threshold, no_speech_threshold, *,segment, decode_options): 
     temperatures = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
     decode_result = None
     for t in temperatures:
@@ -164,8 +157,6 @@ def decode_with_fallback(
             decode_options.best_of = None
         decode_options.temperature=t
         decode_result = invoke_decode_task(model, tokenizer, segment, config, decode_options)
-        print(decode_result)
-        sys.exit(0)
         needs_fallback = False
         if (
             compression_ratio_threshold is not None
@@ -227,8 +218,6 @@ else:
     def make_safe(string):
         return string
     
-
-
 def transcribe(
         *, model, tokenizer, mel, 
         config,
@@ -239,7 +228,7 @@ def transcribe(
         ):
     n_audio_ctx = config.n_audio_ctx 
     n_text_ctx = config.n_text_ctx 
-    device = "cpu"
+    device = get_device()
     condition_on_previous_text = speech_options.condition_on_previous_text
     decode_options.language = getattr(decode_options, "language", "en") or "en"
     dtype = torch.float16 if getattr(decode_options, "fp16", True) else torch.float32
@@ -288,16 +277,12 @@ def transcribe(
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(device).to(dtype)
             decode_options.prompt = all_tokens[prompt_reset_since:]
             result = decode_with_fallback(
-                model, 
-                tokenizer,
-                config,
+                model, tokenizer, config,
                 speech_options.compression_ratio_threshold,
                 speech_options.logprob_threshold,
                 speech_options.no_speech_threshold, 
                 segment = mel_segment,
                 decode_options=decode_options)
-            print(result)
-            sys.exit(0)
 
             tokens = torch.tensor(result.tokens)
             if speech_options.no_speech_threshold is not None:
@@ -333,9 +318,10 @@ def transcribe(
                         new_segment(
                             start=time_offset + start_timestamp_pos * time_precision,
                             end=time_offset + end_timestamp_pos * time_precision,
+                            seek = seek,
+                            tokenizer=tokenizer,
                             tokens=sliced_tokens,
-                            result=result,
-                        )
+                            result=result)
                     )
                     last_slice = current_slice
                     
@@ -356,19 +342,18 @@ def transcribe(
                     last_timestamp_pos = (
                         timestamps[-1].item() - tokenizer.timestamp_begin
                     )
-                    duration = last_timestamp_pos * time_precision
-                    
+                    duration = last_timestamp_pos * time_precision 
                 current_segments.append(
                     new_segment(
                         start=time_offset,
                         end=time_offset + duration,
+                        seek = seek,
+                        tokenizer=tokenizer,
                         tokens=tokens,
                         result=result,
                     )
                 )
-                
                 seek += segment_size
-
             if verbose:
                 for segment in current_segments:
                     start, end, text = segment["start"], segment["end"], segment["text"]
