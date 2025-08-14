@@ -318,18 +318,7 @@ class DecodeTask:
             )
         ]
 
-class Inference:
-    def logits(self, tokens, audio_features):
-        raise NotImplementedError
-
-    def rearrange_kv_cache(self, source_indices) -> None:
-        raise NotImplementedError
-
-    def cleanup_caching(self) -> None:
-        pass
-
-
-class CachedInference(Inference):
+class CachedInference:
     def __init__(self, model, initial_token_length: int):
         self.model = model
         self.initial_token_length = initial_token_length
