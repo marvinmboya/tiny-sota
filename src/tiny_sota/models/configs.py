@@ -1,5 +1,8 @@
 import torch 
-from dataclasses import dataclass 
+from torch import Tensor 
+from dataclasses import dataclass, field
+
+from typing import Optional, Union, List, Iterable, Dict, Any
 
 @dataclass
 class BaseConfig:
@@ -97,8 +100,224 @@ class Whisper_Small:
     bias = True
     dtype = torch.float32
 
-class Configs:
-    Qwen: BaseConfig = Qwen3_06B
-    Llama: BaseConfig = Llama32_1B
+class ModelConfigs:
+    Qwen = Qwen3_06B
+    Llama = Llama32_1B
     Whisper = Whisper_Small
-    Dummy: BaseConfig = Qwen_Dummy
+    Dummy = Qwen_Dummy
+
+# TEXTTOSPEECH STARTS 
+def exact_div(x, y):
+    assert x % y == 0
+    return x // y
+
+@dataclass
+class Audio_Mel_Params:
+    SAMPLE_RATE: int = 16_000
+    CHUNK_LENGTH: int = 30
+    HOP_LENGTH: int = 160
+    PCM_SCALE: float = 32768.0
+    N_FFT: int = 400
+    @property
+    def N_SAMPLES(self) -> int:
+        return self.CHUNK_LENGTH * self.SAMPLE_RATE
+    @property
+    def N_FRAMES(self) -> int:
+        return exact_div(self.N_SAMPLES, self.HOP_LENGTH)
+    @property
+    def FRAMES_PER_SECOND(self) -> int:
+        return exact_div(self.SAMPLE_RATE, self.HOP_LENGTH)
+
+@dataclass
+class Audio_PreDecode_Params:
+    n_audio_ctx: int
+    n_text_ctx: int
+    initial_prompt: Optional[str] = None
+    all_tokens: List[Any] = field(default_factory=list)
+    all_segments: List[Any] = field(default_factory=list)
+    prompt_reset_since: int = 0
+    @property 
+    def input_stride(self):
+        return exact_div(
+            Audio_Mel_Params.N_FRAMES, 
+            self.n_audio_ctx
+        )
+    @property
+    def time_precision(self): 
+        return (
+            self.input_stride * 
+            Audio_Mel_Params.HOP_LENGTH / 
+            Audio_Mel_Params.SAMPLE_RATE
+        )
+    @property 
+    def remaining_prompt_length(self): 
+        return self.n_text_ctx // 2 - 1
+    def __post_init__(self):
+        if self.initial_prompt is not None:
+            self.initial_prompt_tokens = self.tokenizer.encode(
+                " " + self.initial_prompt.strip()
+            )
+            self.all_tokens.extend(self.initial_prompt_tokens)
+            self.remaining_prompt_length -= len(self.initial_prompt_tokens)
+        else:
+            self.initial_prompt_tokens = []
+
+class AudioTasks:
+    Translate: str = "translate"
+    Transcribe: str = "transcribe"
+
+@dataclass
+class Audio_Transcribe_Params:
+    language: str = "en" 
+    task: AudioTasks = AudioTasks.Transcribe 
+    num_languages: int = 99
+    is_multilingual: bool = True
+
+@dataclass
+class SpeechOptions:
+    compression_ratio_threshold = 2.4
+    logprob_threshold = -1.0
+    no_speech_threshold =  0.6
+    cond_prev_text = True 
+    
+@dataclass
+class DecodeOptions:
+    task: AudioTasks = AudioTasks.Transcribe
+    language: Optional[str] = "en"
+    temperature: float = 0.0
+    sample_len: Optional[int] = None
+    best_of: Optional[int] = None
+    beam_size: Optional[int] = None
+    patience: Optional[float] = None
+    length_penalty: Optional[float] = None
+    prompt: Optional[Union[str, List[int]]] = None
+    prefix: Optional[Union[str, List[int]]] = None
+    suppress_tokens: Optional[Union[str, Iterable[int]]] = "-1"
+    suppress_blank: bool = True
+    without_timestamps: bool = False
+    max_initial_timestamp: Optional[float] = 1.0
+    dtype: torch.dtype = torch.float32
+
+@dataclass
+class DecodeResult:
+    audio_features: Tensor
+    language: str
+    language_probs: Optional[Dict[str, float]] = None
+    tokens: List[int] = field(default_factory=list)
+    text: str = ""
+    avg_logprob: float = torch.nan
+    no_speech_prob: float = torch.nan
+    temperature: float = torch.nan
+    compression_ratio: float = torch.nan
+
+LANGUAGES = {
+    "en": "english",
+    "zh": "chinese",
+    "de": "german",
+    "es": "spanish",
+    "ru": "russian",
+    "ko": "korean",
+    "fr": "french",
+    "ja": "japanese",
+    "pt": "portuguese",
+    "tr": "turkish",
+    "pl": "polish",
+    "ca": "catalan",
+    "nl": "dutch",
+    "ar": "arabic",
+    "sv": "swedish",
+    "it": "italian",
+    "id": "indonesian",
+    "hi": "hindi",
+    "fi": "finnish",
+    "vi": "vietnamese",
+    "he": "hebrew",
+    "uk": "ukrainian",
+    "el": "greek",
+    "ms": "malay",
+    "cs": "czech",
+    "ro": "romanian",
+    "da": "danish",
+    "hu": "hungarian",
+    "ta": "tamil",
+    "no": "norwegian",
+    "th": "thai",
+    "ur": "urdu",
+    "hr": "croatian",
+    "bg": "bulgarian",
+    "lt": "lithuanian",
+    "la": "latin",
+    "mi": "maori",
+    "ml": "malayalam",
+    "cy": "welsh",
+    "sk": "slovak",
+    "te": "telugu",
+    "fa": "persian",
+    "lv": "latvian",
+    "bn": "bengali",
+    "sr": "serbian",
+    "az": "azerbaijani",
+    "sl": "slovenian",
+    "kn": "kannada",
+    "et": "estonian",
+    "mk": "macedonian",
+    "br": "breton",
+    "eu": "basque",
+    "is": "icelandic",
+    "hy": "armenian",
+    "ne": "nepali",
+    "mn": "mongolian",
+    "bs": "bosnian",
+    "kk": "kazakh",
+    "sq": "albanian",
+    "sw": "swahili",
+    "gl": "galician",
+    "mr": "marathi",
+    "pa": "punjabi",
+    "si": "sinhala",
+    "km": "khmer",
+    "sn": "shona",
+    "yo": "yoruba",
+    "so": "somali",
+    "af": "afrikaans",
+    "oc": "occitan",
+    "ka": "georgian",
+    "be": "belarusian",
+    "tg": "tajik",
+    "sd": "sindhi",
+    "gu": "gujarati",
+    "am": "amharic",
+    "yi": "yiddish",
+    "lo": "lao",
+    "uz": "uzbek",
+    "fo": "faroese",
+    "ht": "haitian creole",
+    "ps": "pashto",
+    "tk": "turkmen",
+    "nn": "nynorsk",
+    "mt": "maltese",
+    "sa": "sanskrit",
+    "lb": "luxembourgish",
+    "my": "myanmar",
+    "bo": "tibetan",
+    "tl": "tagalog",
+    "mg": "malagasy",
+    "as": "assamese",
+    "tt": "tatar",
+    "haw": "hawaiian",
+    "ln": "lingala",
+    "ha": "hausa",
+    "ba": "bashkir",
+    "jw": "javanese",
+    "su": "sundanese",
+    "yue": "cantonese",
+}
+
+
+class AudioConfigs:
+    Mel_Op = Audio_Mel_Params
+    Predecode_Op = Audio_PreDecode_Params
+    Transcribe_Op = Audio_Transcribe_Params 
+    Speech_Op = SpeechOptions 
+    Decode_Op = DecodeOptions
+    Decode_Res = DecodeResult
