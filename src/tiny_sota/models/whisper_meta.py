@@ -22,7 +22,7 @@ class SpeechOptions:
     compression_ratio_threshold = 2.4
     logprob_threshold = -1.0
     no_speech_threshold =  0.6
-    condition_on_previous_text = True 
+    cond_prev_text = True 
     
 @dataclass
 class DecodeOptions:
@@ -40,7 +40,7 @@ class DecodeOptions:
     suppress_blank: bool = True
     without_timestamps: bool = False
     max_initial_timestamp: Optional[float] = 1.0
-    fp16: bool = False
+    dtype: torch.dtype = torch.float32
 
 
 @dataclass
