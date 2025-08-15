@@ -5,4 +5,4 @@ datasets
 *.mp3
 *.wav
 *.ogg
-tests/assets/*
+tests/files/*
