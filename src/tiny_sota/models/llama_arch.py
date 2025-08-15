@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from .tiny_modules import RMSNorm, TriFeedForward
 from .attention import GQAttention
-from .utils import compute_rope_params
+from .llm_utils import compute_rope_params
 from .configs import BaseConfig
 
 
