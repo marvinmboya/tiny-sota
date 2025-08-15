@@ -86,27 +86,17 @@ def new_segment(*, start, end, seek, tokenizer, tokens, result):
         "no_speech_prob": result.no_speech_prob,
     }
 
-def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
-    if torch.is_tensor(array):
-        if array.shape[axis] > length:
-            array = array.index_select(
-                dim=axis, index=torch.arange(length, device=array.device)
-            )
-
-        if array.shape[axis] < length:
-            pad_widths = [(0, 0)] * array.ndim
-            pad_widths[axis] = (0, length - array.shape[axis])
-            array = F.pad(array, [pad for sizes in pad_widths[::-1] for pad in sizes])
-    else:
-        if array.shape[axis] > length:
-            array = array.take(indices=range(length), axis=axis)
-
-        if array.shape[axis] < length:
-            pad_widths = [(0, 0)] * array.ndim
-            pad_widths[axis] = (0, length - array.shape[axis])
-            array = np.pad(array, pad_widths)
-
-    return array
+def pad_or_trim(mel_segment, length: int = N_SAMPLES, *, axis: int = -1):
+    assert isinstance(mel_segment, torch.Tensor), "segment should be torch Tensor!"
+    if mel_segment.shape[axis] > length:
+        mel_segment = mel_segment.index_select(
+            dim=axis, index=torch.arange(length, device=mel_segment.device)
+        )
+    if mel_segment.shape[axis] < length:
+        pad_widths = [(0, 0)] * mel_segment.ndim
+        pad_widths[axis] = (0, length - mel_segment.shape[axis])
+        mel_segment = F.pad(mel_segment, [pad for sizes in pad_widths[::-1] for pad in sizes])
+    return mel_segment
 
 @torch.no_grad()
 def invoke_decode_task(model, tokenizer, mel, config, decode_options):
@@ -115,8 +105,12 @@ def invoke_decode_task(model, tokenizer, mel, config, decode_options):
     result = DecodeTask(model, tokenizer, config, decode_options).run(mel)
     return result[0] if single else result
 
-def decode_with_fallback(model, tokenizer, config, compression_ratio_threshold,
-        logprob_threshold, no_speech_threshold, *,segment, decode_options): 
+def decode_with_fallback(
+        model, tokenizer, config, 
+        compression_ratio_threshold,
+        logprob_threshold, no_speech_threshold, 
+        *, segment, decode_options
+    ): 
     temperatures = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
     decode_result = None
     for t in temperatures:
@@ -128,23 +122,13 @@ def decode_with_fallback(model, tokenizer, config, compression_ratio_threshold,
         decode_options.temperature=t
         decode_result = invoke_decode_task(model, tokenizer, segment, config, decode_options)
         needs_fallback = False
-        if (
-            compression_ratio_threshold is not None
-            and decode_result.compression_ratio > 
-            compression_ratio_threshold
-        ):
+        if (compression_ratio_threshold is not None and 
+            decode_result.compression_ratio > compression_ratio_threshold):
             needs_fallback = True
-        if (
-            logprob_threshold is not None
-            and decode_result.avg_logprob < logprob_threshold
-        ):
+        if (logprob_threshold is not None and decode_result.avg_logprob < logprob_threshold):
             needs_fallback = True
-        if (
-            no_speech_threshold is not None
-            and decode_result.no_speech_prob > no_speech_threshold
-            and logprob_threshold is not None
-            and decode_result.avg_logprob < logprob_threshold
-        ):
+        if (no_speech_threshold is not None and decode_result.no_speech_prob > no_speech_threshold
+            and logprob_threshold is not None and decode_result.avg_logprob < logprob_threshold):
             needs_fallback = False
         if not needs_fallback:
             break
@@ -182,25 +166,12 @@ def transcribe(
         initial_prompt = None,
         verbose = False,
         ):
+    seek = 0
     n_audio_ctx = config.n_audio_ctx 
     n_text_ctx = config.n_text_ctx 
+    assert decode_options.language is not None, "set language!"
     device = get_device()
-    condition_on_previous_text = speech_options.condition_on_previous_text
-    decode_options.language = getattr(decode_options, "language", "en") or "en"
-    dtype = torch.float16 if getattr(decode_options, "fp16", True) else torch.float32
     content_frames = mel.shape[-1] - N_FRAMES
-    clip_timestamps = "0"
-    if isinstance(clip_timestamps, str):
-        clip_timestamps = [float(ts) for ts in (
-            clip_timestamps.split(",") if clip_timestamps else [])]
-    seek_points = [round(ts*FRAMES_PER_SECOND) for ts in clip_timestamps]
-    if len(seek_points) == 0:
-        seek_points.append(0)
-    if len(seek_points) % 2 == 1:
-        seek_points.append(content_frames)
-    seek_clips = list(zip(seek_points[::2], seek_points[1::2]))
-    clip_idx = 0
-    seek = seek_clips[clip_idx][0]
     input_stride = exact_div(N_FRAMES, n_audio_ctx)
     time_precision = (input_stride * HOP_LENGTH / SAMPLE_RATE)
     all_tokens = []
@@ -213,24 +184,20 @@ def transcribe(
         remaining_prompt_length -= len(initial_prompt_tokens)
     else:
         initial_prompt_tokens = []
-    with tqdm.tqdm(
-        total=content_frames, 
-        unit="frames",
-        disable=verbose is not False) as pbar:
-        while clip_idx < len(seek_clips):
-            seek_clip_start, seek_clip_end = seek_clips[clip_idx]
-            if seek < seek_clip_start:
-                seek = seek_clip_start
-            if seek >= seek_clip_end:
-                clip_idx += 1
-                if clip_idx < len(seek_clips):
-                    seek = seek_clips[clip_idx][0]
-                continue
+    with tqdm.tqdm(total=content_frames, unit="frames",disable=verbose is not False) as pbar:
+        while True:
+            """
+            this loop goes through the audio split as segments, 
+            and only ends after we have decoded upto the last 
+            (not so same size) segment and hence exhaust all the frames
+            """
+            if seek >= content_frames:
+                break
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
-            segment_size = min(N_FRAMES, content_frames - seek, seek_clip_end - seek)
-            mel_segment = mel[:, seek : seek + segment_size]
-            segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
-            mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(device).to(dtype)
+            segment_size = min(N_FRAMES, content_frames-seek)
+            mel_segment = mel[:, seek : seek+segment_size]
+            segment_duration = segment_size*HOP_LENGTH/SAMPLE_RATE
+            mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(device).to(decode_options.dtype)
             decode_options.prompt = all_tokens[prompt_reset_since:]
             result = decode_with_fallback(
                 model, tokenizer, config,
@@ -238,8 +205,8 @@ def transcribe(
                 speech_options.logprob_threshold,
                 speech_options.no_speech_threshold, 
                 segment = mel_segment,
-                decode_options=decode_options)
-
+                decode_options=decode_options
+            )
             tokens = torch.tensor(result.tokens)
             if speech_options.no_speech_threshold is not None:
                 should_skip = result.no_speech_prob > speech_options.no_speech_threshold
@@ -253,7 +220,8 @@ def transcribe(
                     continue
             previous_seek = seek
             current_segments = []
-            timestamp_tokens = tokens.ge(tokenizer.timestamp_begin)
+            time_begin = tokenizer.timestamp_begin
+            timestamp_tokens = tokens.ge(time_begin)
             single_timestamp_ending = timestamp_tokens[-2:].tolist() == [False, True]
             consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0]
             consecutive.add_(1)
@@ -264,49 +232,31 @@ def transcribe(
                 last_slice = 0 
                 for current_slice in slices:
                     sliced_tokens = tokens[last_slice:current_slice]
-                    start_timestamp_pos = (
-                        sliced_tokens[0].item() - tokenizer.timestamp_begin
-                    )
-                    end_timestamp_pos = (
-                        sliced_tokens[-1].item() - tokenizer.timestamp_begin
-                    )
+                    start_timestamp_pos = (sliced_tokens[0].item() - time_begin)
+                    end_timestamp_pos = (sliced_tokens[-1].item() - time_begin)
                     current_segments.append(
                         new_segment(
                             start=time_offset + start_timestamp_pos * time_precision,
                             end=time_offset + end_timestamp_pos * time_precision,
-                            seek = seek,
-                            tokenizer=tokenizer,
-                            tokens=sliced_tokens,
-                            result=result)
+                            seek=seek, tokenizer=tokenizer, tokens=sliced_tokens, result=result
+                        )
                     )
                     last_slice = current_slice
-                    
                 if single_timestamp_ending:
                     seek += segment_size
                 else:
-                    last_timestamp_pos = (
-                        tokens[last_slice - 1].item() - tokenizer.timestamp_begin
-                    )
+                    last_timestamp_pos = (tokens[last_slice-1].item()-time_begin)
                     seek += last_timestamp_pos * input_stride
             else:
                 duration = segment_duration
                 timestamps = tokens[timestamp_tokens.nonzero().flatten()]
-                if (
-                    len(timestamps) > 0
-                    and timestamps[-1].item() != tokenizer.timestamp_begin
-                ):
-                    last_timestamp_pos = (
-                        timestamps[-1].item() - tokenizer.timestamp_begin
-                    )
+                if (len(timestamps) > 0 and timestamps[-1].item() != time_begin):
+                    last_timestamp_pos = (timestamps[-1].item() - time_begin)
                     duration = last_timestamp_pos * time_precision 
                 current_segments.append(
                     new_segment(
-                        start=time_offset,
-                        end=time_offset + duration,
-                        seek = seek,
-                        tokenizer=tokenizer,
-                        tokens=tokens,
-                        result=result,
+                        start=time_offset, end=time_offset+duration, seek=seek, 
+                        tokenizer=tokenizer, tokens=tokens, result=result
                     )
                 )
                 seek += segment_size
@@ -327,7 +277,7 @@ def transcribe(
                 ])
             all_tokens.extend(
                 [token for segment in current_segments for token in segment['tokens']])
-            if not condition_on_previous_text or result.temperature > 0.5:
+            if not speech_options.cond_prev_text or result.temperature > 0.5:
                 prompt_reset_since = len(all_tokens)
             pbar.update(min(content_frames, seek) - previous_seek)
 
