@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 import torch 
 
-from ..tiny_utils import get_device 
-
 def generate_text_stream(
         model, token_ids, max_new_tokens, 
         temperature=0.0, top_k=None, eos_token_id=None):
