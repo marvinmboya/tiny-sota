@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F 
 
-from .utils import apply_rotary_pos_emb
+from .llm_utils import apply_rotary_pos_emb
 from .configs import BaseConfig
 from .tiny_modules import RMSNorm
 
