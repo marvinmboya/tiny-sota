@@ -43,13 +43,6 @@ class Tokenizer:
         token_ids = [t for t in token_ids if t < self.timestamp_begin]
         return self.encoding.decode(token_ids, **kwargs)
 
-    def decode_with_timestamps(self, token_ids: List[int], **kwargs) -> str:
-        """
-        Timestamp tokens are above other special tokens' id range and are ignored by `decode()`.
-        This method decodes given tokens with timestamps tokens annotated, e.g. "<|1.08|>".
-        """
-        return self.encoding.decode(token_ids, **kwargs)
-
     @cached_property
     def eot(self) -> int:
         return self.encoding.eot_token
@@ -87,32 +80,6 @@ class Tokenizer:
         return self.special_tokens["<|0.00|>"]
 
     @cached_property
-    def language_token(self) -> int:
-        """Returns the token id corresponding to the value of the `language` field"""
-        if self.language is None:
-            raise ValueError("This tokenizer does not have language token configured")
-
-        return self.to_language_token(self.language)
-
-    def to_language_token(self, language):
-        if token := self.special_tokens.get(f"<|{language}|>", None):
-            return token
-
-        raise KeyError(f"Language {language} not found in tokenizer.")
-
-    @cached_property
-    def all_language_tokens(self) -> Tuple[int]:
-        result = []
-        for token, token_id in self.special_tokens.items():
-            if token.strip("<|>") in LANGUAGES:
-                result.append(token_id)
-        return tuple(result)[: self.num_languages]
-
-    @cached_property
-    def all_language_codes(self) -> Tuple[str]:
-        return tuple(self.decode([_l]).strip("<|>") for _l in self.all_language_tokens)
-
-    @cached_property
     def sot_sequence_including_notimestamps(self) -> Tuple[int]:
         return tuple(list(self.sot_sequence) + [self.no_timestamps])
 
@@ -130,49 +97,6 @@ class Tokenizer:
                 if len(tokens) == 1 or symbol in miscellaneous:
                     result.add(tokens[0])
         return tuple(sorted(result))
-
-    def split_to_word_tokens(self, tokens: List[int]):
-        if self.language in {"zh", "ja", "th", "lo", "my", "yue"}:
-            return self.split_tokens_on_unicode(tokens)
-        return self.split_tokens_on_spaces(tokens)
-
-    def split_tokens_on_unicode(self, tokens: List[int]):
-        decoded_full = self.decode_with_timestamps(tokens)
-        replacement_char = "\ufffd"
-
-        words = []
-        word_tokens = []
-        current_tokens = []
-        unicode_offset = 0
-
-        for token in tokens:
-            current_tokens.append(token)
-            decoded = self.decode_with_timestamps(current_tokens)
-            if (replacement_char not in decoded or 
-                decoded_full[unicode_offset + decoded.index(replacement_char)]
-                == replacement_char):
-                words.append(decoded)
-                word_tokens.append(current_tokens)
-                current_tokens = []
-                unicode_offset += len(decoded)
-        return words, word_tokens
-
-    def split_tokens_on_spaces(self, tokens: List[int]):
-        subwords, subword_tokens_list = self.split_tokens_on_unicode(tokens)
-        words = []
-        word_tokens = []
-
-        for subword, subword_tokens in zip(subwords, subword_tokens_list):
-            special = subword_tokens[0] >= self.eot
-            with_space = subword.startswith(" ")
-            punctuation = subword.strip() in string.punctuation
-            if special or with_space or punctuation or len(words) == 0:
-                words.append(subword)
-                word_tokens.append(subword_tokens)
-            else:
-                words[-1] = words[-1] + subword
-                word_tokens[-1].extend(subword_tokens)
-        return words, word_tokens
 
 @lru_cache(maxsize=None)
 def get_encoding(enc_name, num_languages):
