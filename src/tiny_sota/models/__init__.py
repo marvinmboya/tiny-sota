@@ -7,7 +7,7 @@ from .qwen_arch import Qwen3Model
 from .llama_arch import Llama3Model 
 from .whisper_arch import Whisper 
 
-from .utils import getModelMemorySize
+from .llm_utils import getModelMemorySize
 
 from .qwen_load import (
     fetchQwen3WeightsAndTok, 
