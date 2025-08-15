@@ -1,7 +1,6 @@
 import torch 
 import torch.nn.functional as F
 from numpy import inf 
-import sys 
 import numpy as np 
 from torch.distributions import Categorical
 import zlib 
@@ -72,8 +71,8 @@ def get_suppress_tokens(tokenizer, options):
         suppress_tokens.append(tokenizer.no_speech)
     return tuple(sorted(set(suppress_tokens)))
 
-def get_audio_features(model, mel, config, is_fp16=False):
-    if is_fp16:
+def get_audio_features(model, mel, config, decode_dtype):
+    if decode_dtype == torch.float16:
         mel = mel.half()
     if mel.shape[-2:] == (
         config.n_audio_ctx,
@@ -82,7 +81,6 @@ def get_audio_features(model, mel, config, is_fp16=False):
     else:
         audio_features = model.encoder(mel)
     return audio_features
-
 
 def compression_ratio(text) -> float:
     text_bytes = text.encode("utf-8")
@@ -268,7 +266,7 @@ class DecodeTask:
         tokenizer = self.tokenizer
         n_audio = mel.shape[0]
 
-        audio_features = get_audio_features(self.model, mel, self.config, self.options.fp16)
+        audio_features = get_audio_features(self.model, mel, self.config, self.options.dtype)
         tokens = torch.tensor([self.initial_tokens]).repeat(n_audio, 1)
 
         languages = [self.options.language] * audio_features.shape[0]
