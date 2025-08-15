@@ -41,8 +41,8 @@ def run_whisper(audio_path, *, language="en", task="transcribe"):
     )
     print(out['text'])
 
-run_whisper("./english.wav")
-run_whisper("./japanese.mp3")
-run_whisper("./japanese.mp3", task="translate")
+run_whisper("./files/english.wav")
+run_whisper("./files/japanese.mp3")
+run_whisper("./files/japanese.mp3", task="translate")
 
 
