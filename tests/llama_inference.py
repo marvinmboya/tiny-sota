@@ -7,7 +7,7 @@ from tiny_sota.models import (
     fetchLlama3WeightsAndTok,
     loadLlama3WeightsAndTok,
     transferLlama3Weights,
-    Llama3Model, Configs
+    Llama3Model, ModelConfigs
 )
 
 from tiny_sota.models.tiny_load import getLocalWeightsDir
@@ -16,7 +16,7 @@ from tiny_sota.tiny_utils import get_device
 
 device = get_device()
 parent = getLocalWeightsDir()
-config = Configs.Llama
+config = ModelConfigs.Llama
 
 model = Llama3Model(config)
 

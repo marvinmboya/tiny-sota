@@ -6,7 +6,7 @@ import torch.nn as nn
 from tiny_sota.models import (
     transferQwen3Weights,
     loadQwen3WeightsAndTok,
-    Qwen3Model, Configs
+    Qwen3Model, ModelConfigs
 )
 from tiny_sota.models.tiny_load import getLocalWeightsDir
 from tiny_sota.inference import TokenizerChoices, LLMEngine
@@ -14,7 +14,7 @@ from tiny_sota.tiny_utils import get_device
 
 device = get_device()
 parent = getLocalWeightsDir()
-config = Configs.Qwen
+config = ModelConfigs.Qwen
 
 model = Qwen3Model(config)
 weights, tok = loadQwen3WeightsAndTok()
