@@ -103,7 +103,7 @@ class Whisper_Small:
     n_text_head = 12
     n_text_layer = 12
     bias = True
-    dtype = torch.float32
+    dtype = torch.float16
 
 class ModelConfigs:
     Qwen = Qwen3_06B
@@ -195,7 +195,7 @@ class DecodeOptions:
     suppress_blank: bool = True
     without_timestamps: bool = False
     max_initial_timestamp: Optional[float] = 1.0
-    dtype: torch.dtype = torch.float32
+    dtype: torch.dtype = torch.float16
 
 @dataclass
 class DecodeResult:
