@@ -1,11 +1,12 @@
 import torch 
 from huggingface_hub import hf_hub_download
 from pathlib import Path 
+import requests
 
 from tiny_sota.tiny_utils import load_model, load_weights
 from tiny_sota.tiny_utils import ColorPrint
 
-class LLMS_META:
+class LLM_META:
     Qwen3_06B = {
         "repo_id": "Qwen/Qwen3-0.6B",
         "commit": "167b8104f88905a951069f5f95f9776908da5f68",
@@ -21,6 +22,13 @@ class LLMS_META:
         "tok_id": "tokenizer.json",
         "loc_weight": "llama32_1B.safetensors",
         "loc_tok": "llama32_1B.json"
+    }
+
+class STT_META:
+    Whisper_Small = {
+        "remote_url": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
+        "loc_weight": "whisper_small.pt",
+        "loc_tok": "whisper_small.json"
     }
 
 
@@ -81,6 +89,24 @@ def fetchLLMWeightAndTok(meta, local_dir):
     else:
         ColorPrint.Nice(f"{tok_path} exists!")
 
+def fetchGenericWeight(meta, local_dir):
+    from tqdm import tqdm
+    url = meta["remote_url"]
+    loc_weight = meta["loc_weight"]
+    weight_path = local_dir/loc_weight
+    if not weight_path.exists():
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            total = int(r.headers.get("content-length", 0))
+            with open(weight_path, "wb") as f, tqdm(
+                total=total, unit="B", unit_scale=True, unit_divisor=1024
+            ) as bar:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        bar.update(len(chunk))
+    else:
+        ColorPrint.Nice(f"{weight_path} exists!")
 
 def assign(left, right, tensor_name="unknown", cast_to=None):
         cast_to = cast_to or right.clone().detach().dtype
