@@ -71,6 +71,11 @@ class Qwen_Dummy:
     rope_base = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
 
+@dataclass 
+class Qwen_Tok_Options:
+    add_generation_prompt: bool = True,
+    think_mode: bool = False
+    
 @dataclass
 class Whisper_Tiny:
     n_vocab = 51864
