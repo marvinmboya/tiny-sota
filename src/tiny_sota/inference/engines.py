@@ -48,6 +48,7 @@ class STTEngine():
         self.initial_prompt = initial_prompt
         self.set_predecode_parameters()
     def __call__(self, audio_path, speech_options, verbose=False):
+        self.reset()
         audio = load_audio(audio_path)
         mel = log_mel_spectrogram(
             audio, 
@@ -73,5 +74,8 @@ class STTEngine():
         self.predecode_ops = AudioConfigs.Predecode_Op(
             self.n_audio_ctx, self.n_text_ctx, self.initial_prompt
         )
+    def reset(self):
+        self.predecode_ops.all_tokens = []
+        self.predecode_ops.all_segments = []
 
 
