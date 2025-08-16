@@ -3,21 +3,15 @@ from safetensors.torch import load_file
 from .tiny_load import (
     assign, LLM_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
-
-def fetchLlama3WeightsAndTok():
-    Llama_Meta = LLM_META.Llama32_1B
-    local_dir = getLocalWeightsDir()
-    fetchLLMWeightAndTok(Llama_Meta, local_dir)
+from ..tokenizers.llama import Llama3Tokenizer
 
 def loadLlama3WeightsAndTok():
     Llama_Meta = LLM_META.Llama32_1B
     local_dir = getLocalWeightsDir()
-    loc_weight  = local_dir/Llama_Meta["loc_weight"]
-    loc_tok  = local_dir/Llama_Meta["loc_tok"]
-    assert loc_weight.exists(), "Llama weights not downloaded!"
-    assert loc_tok.exists(), "Llama tokenizer not downloaded!"
+    loc_weight, loc_tok = fetchLLMWeightAndTok(Llama_Meta, local_dir)
     weight_dict = load_file(loc_weight)
-    return weight_dict, loc_tok
+    tokenizer = Llama3Tokenizer(loc_tok)
+    return weight_dict, tokenizer
 
 def transferLlama3Weights(model, param_config, params):
     model.embedding.weight = assign(model.embedding.weight, 
