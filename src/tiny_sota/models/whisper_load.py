@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 from safetensors.torch import load_file
 from .tiny_load import (
-    STT_META, getLocalWeightsDir, fetchGenericWeight, assign
+    STT_META, getLocalWeightsDir, fetchGenericFiles, assign
 )
 from ..tokenizers.whisper import get_tokenizer
 from .configs import Audio_Transcribe_Params, Whisper_Small
@@ -11,13 +11,13 @@ from .configs import Audio_Transcribe_Params, Whisper_Small
 def fetchWhisperSmallWeights():
     Whisper_Meta = STT_META.Whisper_Small
     local_dir = getLocalWeightsDir()
-    fetchGenericWeight(Whisper_Meta, local_dir)
+    loc_weights = fetchGenericFiles(
+        Whisper_Meta["url"], 
+        local_dir, 
+        Whisper_Meta["loc_weight"])
 
 def loadWhisperSmallWeightsAndTok(audio_transcribe_params: Audio_Transcribe_Params):
-    Whisper_Meta = STT_META.Whisper_Small
-    local_dir = getLocalWeightsDir()
-    loc_weight  = local_dir/Whisper_Meta["loc_weight"]
-    assert loc_weight.exists(), "Whisper weights not downloaded!"
+    loc_weight  = fetchWhisperSmallWeights()
     loc_tok  = get_tokenizer(audio_transcribe_params)
     weight_dict = torch.load(loc_weight, weights_only=False)
     return weight_dict["model_state_dict"], loc_tok
