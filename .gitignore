@@ -2,7 +2,4 @@
 dist
 datasets
 .DS_Store
-*.mp3
-*.wav
 *.ogg
-tests/files/*
