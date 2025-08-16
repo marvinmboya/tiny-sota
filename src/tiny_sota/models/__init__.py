@@ -10,13 +10,11 @@ from .whisper_arch import Whisper
 from .llm_utils import getModelMemorySize
 
 from .qwen_load import (
-    fetchQwen3WeightsAndTok, 
     loadQwen3WeightsAndTok,
     transferQwen3Weights,
 )
 
 from .llama_load import (
-    fetchLlama3WeightsAndTok, 
     loadLlama3WeightsAndTok, 
     transferLlama3Weights
 )
