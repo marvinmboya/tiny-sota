@@ -54,6 +54,7 @@ class Attention(nn.Module):
         scores = Q @ K.transpose(-1,-2)
         if mask is not None:
             scores += mask[:seq_len,:seq_len]
+        scores = scores.to(dtype)
         weights = F.softmax(scores/K.shape[-1]**.5,dim=-1)
         vectors = weights @ V 
         vectors = vectors.transpose(1,2)
@@ -102,7 +103,8 @@ class GQAttention(nn.Module):
         K = K.repeat_interleave(self.group_size, dim=1)
         V = V.repeat_interleave(self.group_size, dim=1)
         scores = Q @ K.transpose(-1,-2)
-        scores = scores + mask[:seq_len,:seq_len]
+        scores += mask[:seq_len,:seq_len]
+        scores = scores.to(dtype)
         weights = F.softmax(scores/self.head_dim**.5,dim=-1)
         vectors = weights @ V 
         vectors = vectors.transpose(1,2)
