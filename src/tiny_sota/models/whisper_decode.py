@@ -71,7 +71,6 @@ def decode_mel_segments(
             if should_skip:
                 seek += segment_size  
                 continue
-        previous_seek = seek
         current_segments = []
         time_begin = tokenizer.timestamp_begin
         timestamp_tokens = tokens.ge(time_begin)
