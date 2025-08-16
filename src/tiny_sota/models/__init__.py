@@ -2,7 +2,7 @@ from .attention import (
     RMSNorm,Attention,GQAttention
 )
 
-from .configs import Configs
+from .configs import ModelConfigs, AudioConfigs
 from .qwen_arch import Qwen3Model
 from .llama_arch import Llama3Model 
 from .whisper_arch import Whisper 
@@ -21,7 +21,8 @@ from .llama_load import (
     transferLlama3Weights
 )
 
-from .whisper_transfer import (
+from .whisper_load import (
+    loadWhisperSmallWeightsAndTok,
     transferWhisperWeights
 )
 
