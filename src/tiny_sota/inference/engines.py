@@ -39,7 +39,6 @@ class STTEngine():
         self.model = model.eval()
         self.tokenizer = tokenizer
         self.device = device
-        self.seek = 0
         self.config = config
         self.decode_options = decode_options
         self.mel_ops = audio_mel_options
