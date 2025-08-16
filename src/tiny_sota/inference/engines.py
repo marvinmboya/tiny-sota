@@ -1,5 +1,5 @@
 import torch 
-from typing import Optional
+from typing import Optional, Union
 
 from .utils import generate_text_stream
 from ..models import ModelConfigs, AudioConfigs
@@ -10,8 +10,9 @@ from ..models.whisper_decode import decode_mel_segments
 
 class LLMEngine():
     def __init__(self, 
-        loaded_model, tokenizer: str, **kwargs):
-        self.model = loaded_model.eval() 
+        model, tokenizer: str, device: Union[torch.device, str]):
+        model.to(device)
+        self.model = model.eval()
         self.tokenizer = tokenizer
         self.eos_token_id = self.tokenizer.eos_token_id
         self.max_new_tokens = 2000
@@ -27,13 +28,14 @@ class LLMEngine():
 
 class STTEngine():
     def __init__(
-            self, loaded_model, tokenizer, 
+            self, model, tokenizer, device = Union[torch.device, str],
             initial_prompt: Optional[str] = None,
             audio_mel_options = AudioConfigs.Mel_Op(), 
             config = ModelConfigs.Whisper(),
             decode_options = AudioConfigs.Decode_Op()
         ):
-        self.model = loaded_model.eval()
+        model.to(device),
+        self.model = model.eval()
         self.tokenizer = tokenizer
         self.seek = 0
         self.config = config
