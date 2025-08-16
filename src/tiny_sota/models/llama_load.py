@@ -1,16 +1,16 @@
 import torch, torch.nn as nn 
 from safetensors.torch import load_file
 from .tiny_load import (
-    assign, LLMS_META, getLocalWeightsDir, fetchLLMWeightAndTok
+    assign, LLM_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
 
 def fetchLlama3WeightsAndTok():
-    Llama_Meta = LLMS_META.Llama32_1B
+    Llama_Meta = LLM_META.Llama32_1B
     local_dir = getLocalWeightsDir()
     fetchLLMWeightAndTok(Llama_Meta, local_dir)
 
 def loadLlama3WeightsAndTok():
-    Llama_Meta = LLMS_META.Llama32_1B
+    Llama_Meta = LLM_META.Llama32_1B
     local_dir = getLocalWeightsDir()
     loc_weight  = local_dir/Llama_Meta["loc_weight"]
     loc_tok  = local_dir/Llama_Meta["loc_tok"]
