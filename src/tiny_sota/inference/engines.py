@@ -14,12 +14,13 @@ class LLMEngine():
         model.to(device)
         self.model = model.eval()
         self.tokenizer = tokenizer
+        self.device = device
         self.eos_token_id = self.tokenizer.eos_token_id
         self.max_new_tokens = 2000
-    def __call__(self, prompt, device):
+    def __call__(self, prompt):
         max_new_tokens = self.max_new_tokens
         tokens = self.tokenizer.encode(prompt)
-        token_ids = torch.tensor(tokens,device=device).unsqueeze(0)
+        token_ids = torch.tensor(tokens,device=self.device).unsqueeze(0)
         for token in generate_text_stream(
             self.model, token_ids, max_new_tokens, 
             eos_token_id=self.eos_token_id):
@@ -37,6 +38,7 @@ class STTEngine():
         model.to(device),
         self.model = model.eval()
         self.tokenizer = tokenizer
+        self.device = device
         self.seek = 0
         self.config = config
         self.decode_options = decode_options
@@ -46,12 +48,12 @@ class STTEngine():
         assert decode_options.language is not None, "set decode language!"
         self.initial_prompt = initial_prompt
         self.set_predecode_parameters()
-    def __call__(self, audio_path, speech_options, device, verbose=False):
+    def __call__(self, audio_path, speech_options, verbose=False):
         audio = load_audio(audio_path)
         mel = log_mel_spectrogram(
             audio, 
             self.config.n_mels,
-            device=device,
+            device=self.device,
             padding=self.mel_ops.N_SAMPLES
         )
         content_frames = mel.shape[-1] - self.mel_ops.N_FRAMES
@@ -65,7 +67,7 @@ class STTEngine():
             decode_options = self.decode_options, 
             speech_options = speech_options, 
             verbose = verbose,
-            device = device 
+            device = self.device 
         )
     def set_predecode_parameters(self):
         self.predecode_ops = AudioConfigs.Predecode_Op(
