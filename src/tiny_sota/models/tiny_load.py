@@ -26,9 +26,8 @@ class LLM_META:
 
 class STT_META:
     Whisper_Small = {
-        "remote_url": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
+        "url": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
         "loc_weight": "whisper_small.pt",
-        "loc_tok": "whisper_small.json"
     }
 
 
@@ -88,12 +87,11 @@ def fetchLLMWeightAndTok(meta, local_dir):
         (local_dir/tok_id).rename(tok_path)
     else:
         ColorPrint.Nice(f"{tok_path} exists!")
+    return (weight_path, tok_path)
 
-def fetchGenericWeight(meta, local_dir):
+def fetchGenericFiles(url, local_dir, filename):
     from tqdm import tqdm
-    url = meta["remote_url"]
-    loc_weight = meta["loc_weight"]
-    weight_path = local_dir/loc_weight
+    weight_path = local_dir/filename
     if not weight_path.exists():
         with requests.get(url, stream=True) as r:
             r.raise_for_status()
@@ -107,6 +105,7 @@ def fetchGenericWeight(meta, local_dir):
                         bar.update(len(chunk))
     else:
         ColorPrint.Nice(f"{weight_path} exists!")
+    return weight_path
 
 def assign(left, right, tensor_name="unknown", cast_to=None):
         cast_to = cast_to or right.clone().detach().dtype
