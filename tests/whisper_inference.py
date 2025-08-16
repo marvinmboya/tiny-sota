@@ -21,6 +21,9 @@ del weights
 
 engine = STTEngine(model, tok, device)
 speech_ops = SpeechOptions()
+# whisper is robust enough to transcribe some
+# non english audio 
+# however it is recommended to set language explicity
 engine("./files/Spanish-greetings.mp3", speech_ops)
 engine("./files/japanese.mp3", speech_ops)
 engine.switch_task()
