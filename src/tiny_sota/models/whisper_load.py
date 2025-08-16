@@ -15,6 +15,7 @@ def fetchWhisperSmallWeights():
         Whisper_Meta["url"], 
         local_dir, 
         Whisper_Meta["loc_weight"])
+    return loc_weights
 
 def loadWhisperSmallWeightsAndTok(audio_transcribe_params: Audio_Transcribe_Params):
     loc_weight  = fetchWhisperSmallWeights()
