@@ -123,15 +123,9 @@ class Audio_Mel_Params:
     HOP_LENGTH: int = 160
     PCM_SCALE: float = 32768.0
     N_FFT: int = 400
-    @property
-    def N_SAMPLES(self) -> int:
-        return self.CHUNK_LENGTH * self.SAMPLE_RATE
-    @property
-    def N_FRAMES(self) -> int:
-        return exact_div(self.N_SAMPLES, self.HOP_LENGTH)
-    @property
-    def FRAMES_PER_SECOND(self) -> int:
-        return exact_div(self.SAMPLE_RATE, self.HOP_LENGTH)
+    N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE
+    N_FRAMES = N_SAMPLES // HOP_LENGTH
+    FRAMES_PER_SECOND = SAMPLE_RATE // HOP_LENGTH
 
 @dataclass
 class Audio_PreDecode_Params:
