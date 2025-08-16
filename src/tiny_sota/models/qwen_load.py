@@ -3,21 +3,15 @@ from safetensors.torch import load_file
 from .tiny_load import (
     assign, LLM_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
-
-def fetchQwen3WeightsAndTok():
-    Qwen_Meta = LLM_META.Qwen3_06B
-    local_dir = getLocalWeightsDir()
-    fetchLLMWeightAndTok(Qwen_Meta, local_dir)
+from ..tokenizers.qwen import Qwen3Tokenizer
 
 def loadQwen3WeightsAndTok():
     Qwen_Meta = LLM_META.Qwen3_06B
     local_dir = getLocalWeightsDir()
-    loc_weight  = local_dir/Qwen_Meta["loc_weight"]
-    loc_tok  = local_dir/Qwen_Meta["loc_tok"]
-    assert loc_weight.exists(), "Qwen weights not downloaded!"
-    assert loc_tok.exists(), "Qwen tokenizer not downloaded!"
+    loc_weight, loc_tok = fetchLLMWeightAndTok(Qwen_Meta, local_dir)
     weight_dict = load_file(loc_weight)
-    return weight_dict, loc_tok
+    tokenizer = Qwen3Tokenizer(loc_tok)
+    return weight_dict, tokenizer
 
 def transferQwen3Weights(model, param_config, params):
     model.embedding.weight = assign(model.embedding.weight, 
