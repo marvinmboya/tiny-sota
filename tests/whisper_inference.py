@@ -13,9 +13,7 @@ device = get_device()
 config = ModelConfigs.Whisper
 model = Whisper(config)
 
-transcribe_params = Audio_Transcribe_Params()
-transcribe_params.language = "en"
-weights, tok = loadWhisperSmallWeightsAndTok(transcribe_params)
+weights, tok = loadWhisperSmallWeightsAndTok(Audio_Transcribe_Params)
 transferWhisperWeights(model, config, weights)
 del weights
 
