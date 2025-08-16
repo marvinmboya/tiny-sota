@@ -3,22 +3,16 @@ from typing import Optional
 
 from .utils import generate_text_stream
 from ..models import ModelConfigs, AudioConfigs
-from .utils import TokenizerChoices, loadTokenizer, colorFlush
+from .utils import colorFlush
 
 from ..models.whisper_utils import load_audio, log_mel_spectrogram
 from ..models.whisper_decode import decode_mel_segments
 
 class LLMEngine():
     def __init__(self, 
-        loaded_model, tokenizer_file: str, 
-        tokenizer_choice:TokenizerChoices, 
-        **kwargs):
+        loaded_model, tokenizer: str, **kwargs):
         self.model = loaded_model.eval() 
-        self.tokenizer = loadTokenizer(
-            tokenizer_file, 
-            tokenizer_choice, 
-            **kwargs
-        ) 
+        self.tokenizer = tokenizer
         self.eos_token_id = self.tokenizer.eos_token_id
         self.max_new_tokens = 2000
     def __call__(self, prompt, device):
