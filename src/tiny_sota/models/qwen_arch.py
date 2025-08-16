@@ -10,7 +10,6 @@ class DecoderBlock(nn.Module):
     def __init__(self, config: BaseConfig, is_qwen3=True):
         super(DecoderBlock,self).__init__()
         emb_dim = config.emb_dim 
-        dtype = config.dtype
         self.rms1 = RMSNorm(emb_dim, is_qwen3=is_qwen3)
         self.rms2 = RMSNorm(emb_dim, is_qwen3=is_qwen3)
         self.attn = GQAttention(config, is_qwen3=True)
