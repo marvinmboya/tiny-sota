@@ -4,13 +4,18 @@ from .tiny_load import (
     assign, LLM_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
 from ..tokenizers.qwen import Qwen3Tokenizer
+from .configs import Qwen_Tok_Options
 
-def loadQwen3WeightsAndTok():
+def loadQwen3WeightsAndTok(qwen_tok_options: Qwen_Tok_Options):
     Qwen_Meta = LLM_META.Qwen3_06B
     local_dir = getLocalWeightsDir()
     loc_weight, loc_tok = fetchLLMWeightAndTok(Qwen_Meta, local_dir)
     weight_dict = load_file(loc_weight)
-    tokenizer = Qwen3Tokenizer(loc_tok)
+    tokenizer = Qwen3Tokenizer(
+        loc_tok, 
+        add_generation_prompt = qwen_tok_options.add_generation_prompt, 
+        think_mode = qwen_tok_options.think_mode
+    )
     return weight_dict, tokenizer
 
 def transferQwen3Weights(model, param_config, params):
