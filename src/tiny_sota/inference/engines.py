@@ -56,7 +56,7 @@ class STTEngine():
             padding=self.mel_ops.N_SAMPLES
         )
         content_frames = mel.shape[-1] - self.mel_ops.N_FRAMES
-        tokens, segments = decode_mel_segments(
+        result = decode_mel_segments(
             model = self.model,
             tokenizer = self.tokenizer,
             mel = mel, 
@@ -68,6 +68,7 @@ class STTEngine():
             verbose = verbose,
             device = self.device 
         )
+        print(result['text'])
     def set_predecode_parameters(self):
         self.predecode_ops = AudioConfigs.Predecode_Op(
             self.n_audio_ctx, self.n_text_ctx, self.initial_prompt
