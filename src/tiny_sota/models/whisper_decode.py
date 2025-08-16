@@ -36,6 +36,8 @@ def decode_mel_segments(
     input_stride = predecode_params.input_stride
     time_precision = predecode_params.time_precision
     initial_prompt_tokens = predecode_params.initial_prompt_tokens
+    prompt_reset_since = predecode_params.prompt_reset_since
+    seek = 0
     while True:
         """
         this loop goes through the audio split as segments, 
