@@ -4,6 +4,7 @@ from typing import Optional, Union
 from .utils import generate_text_stream
 from ..models import ModelConfigs, AudioConfigs
 from .utils import colorFlush
+from ..tiny_utils import ColorPrint
 
 from ..models.whisper_utils import load_audio, log_mel_spectrogram
 from ..models.whisper_decode import decode_mel_segments
@@ -74,6 +75,20 @@ class STTEngine():
         self.predecode_ops = AudioConfigs.Predecode_Op(
             self.n_audio_ctx, self.n_text_ctx, self.initial_prompt
         )
+    def switch_task(self):
+        task_id = self.tokenizer.sot_sequence[-1]
+        if task_id == 50359:
+            ColorPrint.Green("task -> translate...")
+            self.tokenizer.sot_sequence = (
+                self.tokenizer.sot_sequence[:-1]
+                + (50358,)
+            )
+        if task_id == 50358:
+            ColorPrint.Green("task -> transcribe...")
+            self.tokenizer.sot_sequence = (
+                self.tokenizer.sot_sequence[:-1]
+                + (50359,)
+            )
     def reset(self):
         self.predecode_ops.all_tokens = []
         self.predecode_ops.all_segments = []
