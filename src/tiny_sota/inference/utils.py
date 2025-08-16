@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import torch 
+from ..tiny_utils.display import bcolors
 
 def generate_text_stream(
         model, token_ids, max_new_tokens, 
@@ -22,3 +22,6 @@ def generate_text_stream(
             break
         yield next_token_id
         token_ids = torch.cat((token_ids, next_token_id), dim=1)
+
+def colorFlush(token, color=bcolors.NICE):
+    print(f"{color}{token}{bcolors.ENDC}",end="",flush=True)
