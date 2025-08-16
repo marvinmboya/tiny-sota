@@ -1,37 +1,29 @@
-import torch
-import sys
 import torch.nn as nn
-
 
 from tiny_sota.models import (
     transferQwen3Weights,
     loadQwen3WeightsAndTok,
     Qwen3Model, ModelConfigs
 )
-from tiny_sota.models.tiny_load import getLocalWeightsDir
-from tiny_sota.inference import TokenizerChoices, LLMEngine
+
+from tiny_sota.inference import LLMEngine
 from tiny_sota.tiny_utils import get_device
+from tiny_sota.models.configs import Qwen_Tok_Options
 
 device = get_device()
-parent = getLocalWeightsDir()
 config = ModelConfigs.Qwen
-
 model = Qwen3Model(config)
-weights, tok = loadQwen3WeightsAndTok()
+
+weights, tok = loadQwen3WeightsAndTok(
+    Qwen_Tok_Options(
+        add_generation_prompt=True,
+        think_mode=False
+    )
+)
 transferQwen3Weights(model, config, weights)
 del weights
 
-model.to(device)
-
-prompt = "write a nice little matrix multiplication example in CUDA"
-engine = LLMEngine(model, tok,
-        TokenizerChoices.qwen,
-        add_generation_prompt = True,
-        think_mode = False)
+prompt = "the story of the princess and the lost castle"
+engine = LLMEngine(model, tok, device)
 engine(prompt)
 
-"""
-LOAD MODEL WITHOUT WEIGHTS FROM HUGGINGFACE
-s_config =  AutoConfig.from_pretrained("Qwen/Qwen3-0.6B")
-model = Qwen3ForCausalLM._from_config(s_config)
-"""
