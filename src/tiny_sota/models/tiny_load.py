@@ -6,7 +6,7 @@ import requests
 from tiny_sota.tiny_utils import load_model, load_weights
 from tiny_sota.tiny_utils import ColorPrint
 
-class LLM_META:
+class MODELS_META:
     Qwen3_06B = {
         "repo_id": "Qwen/Qwen3-0.6B",
         "commit": "167b8104f88905a951069f5f95f9776908da5f68",
@@ -23,11 +23,15 @@ class LLM_META:
         "loc_weight": "llama32_1B.safetensors",
         "loc_tok": "llama32_1B.json"
     }
-
-class STT_META:
     Whisper_Small = {
         "url": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
         "loc_weight": "whisper_small.pt",
+    }
+    Kokoro_82M = {
+        "repo_id": "hexgrad/Kokoro-82M",
+        "commit": "41e5892b9d8b43e56fc560f892312a328a410973",
+        "weight_id": "kokoro-v1_0.pth",
+        "loc_weight": "kokoro_82M.pth"
     }
 
 

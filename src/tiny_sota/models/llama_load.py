@@ -1,12 +1,12 @@
 import torch, torch.nn as nn 
 from safetensors.torch import load_file
 from .tiny_load import (
-    assign, LLM_META, getLocalWeightsDir, fetchLLMWeightAndTok
+    assign, MODELS_META, getLocalWeightsDir, fetchLLMWeightAndTok
 )
 from ..tokenizers.llama import Llama3Tokenizer
 
 def loadLlama3WeightsAndTok():
-    Llama_Meta = LLM_META.Llama32_1B
+    Llama_Meta = MODELS_META.Llama32_1B
     local_dir = getLocalWeightsDir()
     loc_weight, loc_tok = fetchLLMWeightAndTok(Llama_Meta, local_dir)
     weight_dict = load_file(loc_weight)
