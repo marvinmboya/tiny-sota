@@ -111,7 +111,7 @@ class ModelConfigs:
     Whisper = Whisper_Small
     Dummy = Qwen_Dummy
 
-# TEXTTOSPEECH STARTS 
+# SPEECHTOTEXT STARTS 
 def exact_div(x, y):
     assert x % y == 0
     return x // y
@@ -208,6 +208,26 @@ class DecodeResult:
     no_speech_prob: float = torch.nan
     temperature: float = torch.nan
     compression_ratio: float = torch.nan
+
+# TEXTTOSPEECH STARTS
+@dataclass
+class Albert:
+    n_vocab = 178
+    emb_size = 128
+    pos_dim = 512
+    tok_dim = 2
+    heads = 12 
+    layers = 12
+    emb_dim = 768
+    d_in = 768
+    d_out = 768
+    hidden_dim = 2048
+    q_bias = True
+    k_bias = True
+    v_bias = True
+    bias=True
+    eps = 1e-12
+    dtype: torch.dtype = torch.float32
 
 LANGUAGES = {
     "en": "english",
