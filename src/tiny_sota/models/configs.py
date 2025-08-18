@@ -210,23 +210,23 @@ class DecodeResult:
     compression_ratio: float = torch.nan
 
 # TEXTTOSPEECH STARTS
-@dataclass
-class Albert:
-    n_vocab = 178
-    emb_size = 128
-    pos_dim = 512
-    tok_dim = 2
-    heads = 12 
-    layers = 12
-    emb_dim = 768
-    d_in = 768
-    d_out = 768
-    hidden_dim = 2048
-    q_bias = True
-    k_bias = True
-    v_bias = True
-    bias=True
-    eps = 1e-12
+@dataclass(frozen=True)
+class AlbertConfig:
+    n_vocab: int = 178
+    emb_size: int = 128
+    pos_dim: int = 512
+    tok_dim: int = 2
+    heads: int = 12 
+    layers: int = 12
+    emb_dim: int = 768
+    d_in: int = 768
+    d_out: int = 768
+    hidden_dim: int = 2048
+    q_bias: bool = True
+    k_bias: bool = True
+    v_bias: bool = True
+    bias: bool = True
+    eps: float = 1e-12
     dtype: torch.dtype = torch.float32
 
 LANGUAGES = {
