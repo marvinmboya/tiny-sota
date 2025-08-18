@@ -1,7 +1,6 @@
 import torch 
 import torch.nn as nn 
 import torch.nn.functional as F
-from tiny_sota.tiny_utils.core import load_json
 from tiny_sota.meta import LOAD 
 
 from .attention import Attention
