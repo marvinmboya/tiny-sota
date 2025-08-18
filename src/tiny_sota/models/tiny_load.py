@@ -71,27 +71,15 @@ def showLocalWeights():
         size = f"{size / 1024**i:.2f} {'MB' if i < 3 else 'GB'}"
         ColorPrint.Nice(f"{size:.^25}|{nm.name:.^25}")
 
-def fetchLLMWeightAndTok(meta, local_dir):
-    repo_id = meta["repo_id"]
-    commit = meta["commit"]
-    weight_id = meta["weight_id"]
-    tok_id = meta["tok_id"]
-    loc_weight = meta["loc_weight"]
-    loc_tok = meta["loc_tok"]
-    weight_path = local_dir/loc_weight
-    tok_path = local_dir/loc_tok
-    if not weight_path.exists():
-        hf_hub_download(repo_id, weight_id, revision=commit, local_dir=local_dir)
-        (local_dir/weight_id).rename(weight_path)
+def fetchFilesHuggingFace(
+        *, repo_id, commit, rem_id, loc_id, local_dir):
+    local_path = local_dir/loc_id
+    if not local_path.exists():
+        hf_hub_download(repo_id, rem_id, revision=commit, local_dir=local_dir)
+        (local_dir/rem_id).rename(local_path)
     else:
-        ColorPrint.Nice(f"{weight_path} exists!")
-    # tokenizer
-    if not tok_path.exists():
-        hf_hub_download(repo_id, tok_id, revision=commit, local_dir=local_dir)
-        (local_dir/tok_id).rename(tok_path)
-    else:
-        ColorPrint.Nice(f"{tok_path} exists!")
-    return (weight_path, tok_path)
+        ColorPrint.Nice(f"{local_path} exists!")
+    return local_path
 
 def fetchGenericFiles(url, local_dir, filename):
     from tqdm import tqdm
