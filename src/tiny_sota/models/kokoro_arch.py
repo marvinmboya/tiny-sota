@@ -5,6 +5,7 @@ from tiny_sota.meta import LOAD
 
 from .attention import Attention
 from .configs import AlbertConfig 
+from tiny_sota.tiny_utils.core import get_device
 
 from torch.nn.utils.parametrizations import weight_norm
 
@@ -273,8 +274,9 @@ class KokoroConfig:
     albert: AlbertConfig = AlbertConfig()
 
 class Kokoro(nn.Module):
-    def __init__(self, config: KokoroConfig):
+    def __init__(self, config: KokoroConfig, device=get_device()):
         super().__init__()
+        self.device = device
         self.KOKORO_VOCAB = LOAD.KOKORO_VOCAB
         self.config = config
         self.albert = Albert(config.albert)
