@@ -26,12 +26,15 @@ class Attention(nn.Module):
         emb_dim = config.emb_dim
         d_out = config.d_out
         self.heads = config.heads 
-        bias = config.bias 
+        (q_bias, k_bias, v_bias, o_bias) = (
+            config.q_bias, config.k_bias, 
+            config.v_bias, config.o_bias
+        )
         dtype = config.dtype
-        self.Wq = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
-        self.Wk = nn.Linear(emb_dim, d_out, bias=False, dtype=dtype)
-        self.Wv = nn.Linear(emb_dim, d_out, bias=bias, dtype=dtype)
-        self.Wo = nn.Linear(d_out, emb_dim, bias=bias, dtype=dtype)
+        self.Wq = nn.Linear(emb_dim, d_out, bias=q_bias, dtype=dtype)
+        self.Wk = nn.Linear(emb_dim, d_out, bias=k_bias, dtype=dtype)
+        self.Wv = nn.Linear(emb_dim, d_out, bias=v_bias, dtype=dtype)
+        self.Wo = nn.Linear(d_out, emb_dim, bias=o_bias, dtype=dtype)
 
     def forward(self, x, mask=None, cos=None, sin=None, enc_mel=None, kv_cache=None):
         B, seq_len, dim = x.shape
