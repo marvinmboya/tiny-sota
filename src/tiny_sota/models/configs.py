@@ -239,6 +239,16 @@ class AlbertConfig:
     eps: float = 1e-12
     dtype: torch.dtype = torch.float32
 
+@dataclass 
+class KokoroConfig:
+    layers: int = 3
+    style_dim: int = 128
+    hidden_dim: int = 512
+    context_len: int = 512
+    max_duration: int = 50
+    dropout: float = 0.2
+    albert: AlbertConfig = AlbertConfig()
+    
 LANGUAGES = {
     "en": "english",
     "zh": "chinese",
