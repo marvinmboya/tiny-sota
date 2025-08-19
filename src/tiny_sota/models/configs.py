@@ -14,7 +14,10 @@ class BaseConfig:
     hidden_dim: int = emb_dim
     head_dim: int = int(emb_dim // heads)
     qk_norm: bool = True
-    bias: bool = False
+    q_bias: bool = False
+    k_bias: bool = False
+    v_bias: bool = False
+    o_bias: bool = False
     n_kv_groups: int = 8
     rope_base: float = 1_000_000.0
     dtype: torch.dtype = torch.bfloat16
@@ -88,7 +91,10 @@ class Whisper_Tiny:
     n_text_state = 384
     n_text_head = 6
     n_text_layer = 4
-    bias = True
+    q_bias = True
+    k_bias = False
+    v_bias = True
+    o_bias = True
     dtype = torch.float32
 
 class Whisper_Small:
@@ -102,7 +108,10 @@ class Whisper_Small:
     n_text_state = 768
     n_text_head = 12
     n_text_layer = 12
-    bias = True
+    q_bias = True
+    k_bias = False
+    v_bias = True
+    o_bias = True
     dtype = torch.float16
 
 class ModelConfigs:
@@ -225,6 +234,7 @@ class AlbertConfig:
     q_bias: bool = True
     k_bias: bool = True
     v_bias: bool = True
+    o_bias = True
     bias: bool = True
     eps: float = 1e-12
     dtype: torch.dtype = torch.float32
