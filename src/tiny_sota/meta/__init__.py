@@ -39,10 +39,8 @@ class KOKORO_VOICES:
     FEMALE: _FEMALE = _FEMALE()
     MALE: _MALE = _MALE()
 
-@dataclass
-class LOAD:
-    root: Path = Path(__file__).parents[0]
-    KOKORO_VOCAB = load_json(root / "kokoro_vocab.json")
-    COCO_CLASSES = load_json(root / "coco.txt")
-    IMAGENET_CLASSES = load_json(root / "imagenet.txt")
-    KOKORO_VOICES = KOKORO_VOICES()
+_root: Path = Path(__file__).parents[0]
+KOKORO_VOCAB = load_json(_root / "kokoro_vocab.json")
+COCO_CLASSES = load_json(_root / "coco.txt")
+IMAGENET_CLASSES = load_json(_root / "imagenet.txt")
+KOKORO_VOICES = KOKORO_VOICES()
