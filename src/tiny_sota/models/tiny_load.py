@@ -42,9 +42,9 @@ def setLoadingFunc(path, opt, model=None):
     }[opt](path)
 
 
-def getLocalWeightsDir():
+def getLocalWeightsDir(dir: str = "models"):
     parent = Path.home()/".cache/tiny_sota"
-    local_dir = parent/"models" 
+    local_dir = parent/dir 
     local_dir.mkdir(parents=True, exist_ok=True)
     return local_dir 
 
