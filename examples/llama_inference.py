@@ -5,9 +5,9 @@ import torch.nn as nn
 
 from tiny_sota.models import (
     loadLlama3WeightsAndTok,
-    transferLlama3Weights,
     Llama3Model, ModelConfigs
 )
+from tiny_sota.transfers import transferLlama3Weights
 
 from tiny_sota.models.tiny_load import getLocalWeightsDir
 from tiny_sota.inference import LLMEngine
