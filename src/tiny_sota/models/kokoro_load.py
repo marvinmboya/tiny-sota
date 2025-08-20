@@ -546,9 +546,6 @@ def transferKokoroWeights(model, config: KokoroConfig, params):
     transferDecoderWeights(model.decoder, config, params)
     transferGeneratorWeights(model.decoder.generator, config, params)
 
-
-import torch
-
 def check_generator_weights(model, params, tol=1e-6):
     """
     Check that generator weights have been correctly transferred
