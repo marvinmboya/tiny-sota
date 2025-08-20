@@ -1,10 +1,10 @@
 import torch.nn as nn
 
 from tiny_sota.models import (
-    transferQwen3Weights,
     loadQwen3WeightsAndTok,
     Qwen3Model, ModelConfigs
 )
+from tiny_sota.transfers import transferQwen3Weights
 
 from tiny_sota.inference import LLMEngine
 from tiny_sota.tiny_utils import get_device
