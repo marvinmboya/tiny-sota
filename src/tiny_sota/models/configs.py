@@ -243,11 +243,27 @@ class AlbertConfig:
 class KokoroConfig:
     layers: int = 3
     style_dim: int = 128
+    n_token: int = 178
     hidden_dim: int = 512
     context_len: int = 512
     max_duration: int = 50
+    text_encoder_kernel_size: int = 5
+    n_mels: int = 80
     dropout: float = 0.2
     albert: AlbertConfig = AlbertConfig()
+    istftnet: dict = field(default_factory = lambda: {
+    "upsample_kernel_sizes": [20, 12],
+    "upsample_rates": [10, 6],
+    "gen_istft_hop_size": 5,
+    "gen_istft_n_fft": 20,
+    "resblock_dilation_sizes": [
+      [1, 3, 5],
+      [1, 3, 5],
+      [1, 3, 5]
+    ],
+    "resblock_kernel_sizes": [3, 7, 11],
+    "upsample_initial_channel": 512
+  })
     
 LANGUAGES = {
     "en": "english",
