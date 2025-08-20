@@ -608,7 +608,7 @@ def check_generator_weights(model, params, tol=1e-6):
         ]
     
     # Check resblocks
-    for block_idx in range(6):  # 6 resblocks (0 to 5)
+    for block_idx in range(6):
         res_block = model.generator.resblocks[block_idx]
         
         # Check convs1 and convs2
@@ -659,3 +659,5 @@ def check_generator_weights(model, params, tol=1e-6):
         print("❌ Some generator weights do not match.")
     
     return all_match
+
+# check_generator_weights(model.decoder.cpu(), weights['decoder'])
