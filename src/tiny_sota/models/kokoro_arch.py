@@ -515,7 +515,7 @@ class Kokoro(nn.Module):
         asr = t_en @ pred_aln_trg
         audio = self.decoder(asr, F0_pred, N_pred, ref_s[:, :128]).squeeze()
         return audio, pred_duration
-    def forward(self, phonemes, ref_s, speed=1, return_output=False):
+    def forward(self, phonemes, ref_s, speed=1):
         input_ids = list(
           filter(
               lambda i: i is not None, 
@@ -527,4 +527,4 @@ class Kokoro(nn.Module):
         audio, pred_dur = self.forward_with_tokens(input_ids, ref_s, speed)
         audio = audio.squeeze().cpu()
         pred_dur = pred_dur.cpu() if pred_dur is not None else None
-        return self.Output(audio=audio, pred_dur=pred_dur) if return_output else audio
+        return audio, pred_dur
