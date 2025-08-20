@@ -16,11 +16,12 @@ def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.HEART):
         loc_id = meta["loc_weight"],
         local_dir=local_dir
     )
+    local_dir = getLocalWeightsDir(dir="voices")
     loc_voice = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
-        commit = meta["commit"],
-        rem_id = f"voices/{voice}",
-        loc_id = f"kokoro_voices/{voice}.pt",
+        commit = None,
+        rem_id = f"voices/{voice}.pt",
+        loc_id = f"{voice}.pt",
         local_dir=local_dir
     )
     weights_dict = torch.load(

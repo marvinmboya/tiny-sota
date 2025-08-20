@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm 
 import math 
 
-from ..meta import LOAD 
+from ..meta import KOKORO_VOCAB
 from .attention import Attention
 from .configs import AlbertConfig, KokoroConfig 
 from .kokoro_utils import TorchSTFT, CustomSTFT, SineGen
@@ -461,7 +461,7 @@ class Kokoro(nn.Module):
     def __init__(self, config: KokoroConfig, device=get_device()):
         super().__init__()
         self.device = device
-        self.KOKORO_VOCAB = LOAD.KOKORO_VOCAB
+        self.KOKORO_VOCAB = KOKORO_VOCAB
         self.config = config
         self.albert = Albert(config.albert)
         self.ff = nn.Linear(config.albert.d_in, config.hidden_dim)
