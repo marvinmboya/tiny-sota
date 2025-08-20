@@ -27,7 +27,8 @@ dependencies = [
   'torchvision',
   'safetensors',
   'huggingface_hub[cli]',
-  'tokenizers'
+  'tokenizers',
+  'misaki'
 ]
 
 [project.urls]
