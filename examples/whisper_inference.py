@@ -1,12 +1,14 @@
 from tiny_sota.inference import STTEngine
 from tiny_sota.models import (
-    Whisper, transferWhisperWeights, ModelConfigs
+    Whisper, ModelConfigs
 )
-from tiny_sota.models.configs import SpeechOptions
-from tiny_sota.models import transferWhisperWeights
 from tiny_sota.models import loadWhisperSmallWeightsAndTok
-
-from tiny_sota.models.configs import Audio_Transcribe_Params, AudioTasks
+from tiny_sota.models.configs import (
+    SpeechOptions,
+    Audio_Transcribe_Params,
+    AudioTasks
+)
+from tiny_sota.transfers import transferWhisperWeights
 from tiny_sota.tiny_utils import get_device
 
 device = get_device()
