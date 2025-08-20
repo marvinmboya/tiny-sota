@@ -1,6 +1,6 @@
 import torch 
 import re 
-from misaki import en 
+from misaki import en, espeak
 
 from ..tiny_utils.display import bcolors
 
@@ -75,7 +75,8 @@ def en_tokenize(tokens):
         yield ''.join(text).strip(), ''.join(ps).strip(), tks
 
 def generate_audio(text: str, lang_code:str, pack: torch.Tensor, speed=1, model=None):
-    g2p = en.G2P(trf=False, british=lang_code=='b', fallback=None, unk='')
+    fallback = espeak.EspeakFallback(british=False)
+    g2p = en.G2P(trf=False, british=lang_code=='b', fallback=fallback, unk='')
     pattern = r'\n+'
     text = re.split(pattern, text.strip())
     for graphemes_index, graphemes in enumerate(text):
@@ -84,8 +85,9 @@ def generate_audio(text: str, lang_code:str, pack: torch.Tensor, speed=1, model=
         if lang_code in 'ab':
             _, tokens = g2p(graphemes)
             for gs, ps, tks in en_tokenize(tokens):
-                    if not ps:
-                        continue
-                    ps = ps[:510]
-                    audio, duration = model(ps, pack[len(ps)-1], speed)
-                    yield audio
+                if not ps:
+                    continue
+                ps = ps[:510]
+                audio, duration = model(ps, pack[len(ps)-1], speed)
+                yield audio
+            
