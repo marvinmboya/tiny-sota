@@ -14,6 +14,7 @@ def loadLlama3WeightsAndTok():
         loc_id = meta["loc_weight"],
         local_dir=local_dir
     )
+    local_dir = getLocalWeightsDir(dir="tokenizers")
     loc_tok = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = meta["commit"],
