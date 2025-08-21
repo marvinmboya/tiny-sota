@@ -42,7 +42,7 @@ def setLoadingFunc(path, opt, model=None):
     }[opt](path)
 
 
-def getLocalWeightsDir(dir: str = "models"):
+def getLocalDir(dir: str = "models"):
     parent = Path.home()/".cache/tiny_sota"
     local_dir = parent/dir 
     local_dir.mkdir(parents=True, exist_ok=True)
@@ -55,7 +55,7 @@ def divisorWeight(value):
     return i - 1
 
 def getLocalWeights():
-    local_dir = getLocalWeightsDir()
+    local_dir = getLocalDir()
     local_weights = list(local_dir.glob("*.safetensors"))
     for ext in ["*.pth", "*.pt"]:
         local_weights.extend(local_dir.glob(ext))

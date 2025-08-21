@@ -1,14 +1,14 @@
 import torch, torch.nn as nn 
 from safetensors.torch import load_file
 from .tiny_load import (
-    assign, MODELS_META, getLocalWeightsDir, fetchFilesHuggingFace
+    assign, MODELS_META, getLocalDir, fetchFilesHuggingFace
 )
 from ..tokenizers.qwen import Qwen3Tokenizer
 from .configs import Qwen_Tok_Options
 
 def loadQwen3WeightsAndTok(qwen_tok_options: Qwen_Tok_Options):
     meta = MODELS_META.Qwen3_06B
-    local_dir = getLocalWeightsDir()
+    local_dir = getLocalDir()
     loc_weight = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = meta["commit"],
@@ -16,7 +16,7 @@ def loadQwen3WeightsAndTok(qwen_tok_options: Qwen_Tok_Options):
         loc_id = meta["loc_weight"],
         local_dir=local_dir
     )
-    local_dir = getLocalWeightsDir(dir="tokenizers")
+    local_dir = getLocalDir(dir="tokenizers")
     loc_tok = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = meta["commit"],

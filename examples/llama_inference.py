@@ -9,12 +9,12 @@ from tiny_sota.models import (
 )
 from tiny_sota.transfers import transferLlama3Weights
 
-from tiny_sota.models.tiny_load import getLocalWeightsDir
+from tiny_sota.models.tiny_load import getLocalDir
 from tiny_sota.inference import LLMEngine
 from tiny_sota.tiny_utils import get_device
 
 device = get_device()
-parent = getLocalWeightsDir()
+parent = getLocalDir()
 config = ModelConfigs.Llama
 
 model = Llama3Model(config)

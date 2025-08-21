@@ -1,12 +1,12 @@
 from safetensors.torch import load_file
 from .tiny_load import (
-    MODELS_META, getLocalWeightsDir, fetchFilesHuggingFace
+    MODELS_META, getLocalDir, fetchFilesHuggingFace
 )
 from ..tokenizers.llama import Llama3Tokenizer
 
 def loadLlama3WeightsAndTok():
     meta = MODELS_META.Llama32_1B
-    local_dir = getLocalWeightsDir()
+    local_dir = getLocalDir()
     loc_weight = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = meta["commit"],
@@ -14,7 +14,7 @@ def loadLlama3WeightsAndTok():
         loc_id = meta["loc_weight"],
         local_dir=local_dir
     )
-    local_dir = getLocalWeightsDir(dir="tokenizers")
+    local_dir = getLocalDir(dir="tokenizers")
     loc_tok = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = meta["commit"],

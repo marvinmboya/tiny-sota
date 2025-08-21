@@ -1,14 +1,14 @@
 import torch
 from .tiny_load import (
     MODELS_META, 
-    getLocalWeightsDir, 
+    getLocalDir, 
     fetchFilesHuggingFace
 )
 from ..meta import KOKORO_VOICES
 
 def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.HEART):
     meta = MODELS_META.Kokoro_82M
-    local_dir = getLocalWeightsDir()
+    local_dir = getLocalDir()
     loc_weights = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = meta["commit"],
@@ -16,7 +16,7 @@ def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.HEART):
         loc_id = meta["loc_weight"],
         local_dir=local_dir
     )
-    local_dir = getLocalWeightsDir(dir="voices")
+    local_dir = getLocalDir(dir="voices")
     loc_voice = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
         commit = None,

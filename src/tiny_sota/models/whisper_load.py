@@ -1,13 +1,13 @@
 import torch
 from .tiny_load import (
-    MODELS_META, getLocalWeightsDir, fetchGenericFiles
+    MODELS_META, getLocalDir, fetchGenericFiles
 )
 from ..tokenizers.whisper import get_tokenizer
 from .configs import Audio_Transcribe_Params
 
 def fetchWhisperSmallWeights():
     Whisper_Meta = MODELS_META.Whisper_Small
-    local_dir = getLocalWeightsDir()
+    local_dir = getLocalDir()
     loc_weights = fetchGenericFiles(
         Whisper_Meta["url"], 
         local_dir, 
