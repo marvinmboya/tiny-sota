@@ -1,3 +1,4 @@
+import torch
 from ..models.tiny_load import assign 
 from ..models.configs import Whisper_Small
 
