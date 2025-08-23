@@ -30,9 +30,6 @@ def generate_text_stream(
         yield next_token_id
         token_ids = torch.cat((token_ids, next_token_id), dim=1)
 
-def colorFlush(token, color=bcolors.NICE):
-    print(f"{color}{token}{bcolors.ENDC}",end="",flush=True)
-
 # Kokoro 
 def tokens_to_text(tokens):
     return ''.join(t.text + t.whitespace for t in tokens).strip()
