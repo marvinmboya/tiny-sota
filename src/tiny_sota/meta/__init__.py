@@ -39,8 +39,20 @@ class KOKORO_VOICES:
     FEMALE: _FEMALE = _FEMALE()
     MALE: _MALE = _MALE()
 
+@dataclass(frozen=True)
+class KOKORO_LANG_CODES:
+    AMERICAN_ENGLISH = 'a'
+    BRITISH_ENGLISH = 'b'
+    SPANISH = 'e'
+    FRENCH = 'f'
+    HINDI = 'h'
+    ITALIAN = 'i'
+    BRAZILIAN_PORTUGUESE = 'p'
+    JAPANESE = 'j'
+    MANDARIN = 'z'
+
 _root: Path = Path(__file__).parents[0]
-KOKORO_VOCAB = load_json(_root / "kokoro_vocab.json")
 COCO_CLASSES = load_json(_root / "coco.txt")
 IMAGENET_CLASSES = load_json(_root / "imagenet.txt")
+KOKORO_VOCAB = load_json(_root / "kokoro_vocab.json")
 KOKORO_VOICES = KOKORO_VOICES()
