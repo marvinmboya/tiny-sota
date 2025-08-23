@@ -1,8 +1,11 @@
 import torch 
-import re 
+import re, subprocess, sys 
 from misaki import en, espeak
-
 from ..tiny_utils.display import bcolors
+from ..meta import KOKORO_LANG_CODES
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", package])
 
 # Llama and Qwen
 def generate_text_stream(
@@ -74,9 +77,7 @@ def en_tokenize(tokens):
         ps = tokens_to_ps(tks)
         yield ''.join(text).strip(), ''.join(ps).strip(), tks
 
-def generate_audio(text: str, lang_code:str, pack: torch.Tensor, speed=1, model=None):
-    fallback = espeak.EspeakFallback(british=False)
-    g2p = en.G2P(trf=False, british=lang_code=='b', fallback=fallback, unk='')
+def generate_audio(model, g2p, text, voice, lang_code, speed=1):
     pattern = r'\n+'
     text = re.split(pattern, text.strip())
     for graphemes_index, graphemes in enumerate(text):
@@ -88,6 +89,54 @@ def generate_audio(text: str, lang_code:str, pack: torch.Tensor, speed=1, model=
                 if not ps:
                     continue
                 ps = ps[:510]
-                audio, duration = model(ps, pack[len(ps)-1], speed)
+                audio, duration = model(ps, voice[len(ps)-1], speed)
                 yield audio
-            
+        else:
+            chunk_size = 400
+            chunks = []            
+            sentences = re.split(r'([.!?]+)', graphemes)
+            current_chunk = ""
+            for i in range(0, len(sentences), 2):
+                sentence = sentences[i]
+                if i + 1 < len(sentences):
+                    sentence += sentences[i + 1]                    
+                if len(current_chunk) + len(sentence) <= chunk_size:
+                    current_chunk += sentence
+                else:
+                    if current_chunk:
+                        chunks.append(current_chunk.strip())
+                    current_chunk = sentence
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            if not chunks:
+                chunks = [graphemes[i:i+chunk_size] for i in range(0, len(graphemes), chunk_size)]
+            for chunk in chunks:
+                if not chunk.strip():
+                    continue
+                ps, _ = g2p(chunk)
+                if not ps:
+                    continue
+                ps = ps[:510]
+                audio, duration = model(ps, voice[len(ps)-1], speed)
+                yield audio          
+
+
+def set_g2p(lang_code: str):
+    _codes = {'e':'es','f':'fr-fr','h':'hi','i':'it','p':'pt-br'}
+    g2p = None
+    if lang_code in 'ab':
+        fallback = espeak.EspeakFallback(british=lang_code=='b')
+        g2p = en.G2P(trf=False, british=lang_code=='b', fallback=fallback, unk='')
+    elif lang_code == 'j':
+        install("misaki[ja]")
+        from misaki import ja
+        g2p = ja.JAG2P()
+    elif lang_code == 'z':
+        install("misaki[zh]")
+        from misaki import zh
+        g2p = zh.ZHG2P(version=None, en_callable=None)
+    else:
+        language = _codes[lang_code]
+        g2p = espeak.EspeakG2P(language=language)
+        lang_code = language
+    return g2p, lang_code
