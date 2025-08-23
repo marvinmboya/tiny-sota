@@ -4,10 +4,19 @@ from .tiny_load import (
     getLocalDir, 
     fetchFilesHuggingFace
 )
+from dataclasses import dataclass
 from ..meta import KOKORO_VOICES
 
-def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.HEART):
+@dataclass
+class VoicePack:
+    person: str 
+    lang_code: str
+    voice: torch.Tensor 
+
+def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.AMERICAN_ENGLISH):
     meta = MODELS_META.Kokoro_82M
+    lang_code = voice[0]
+    person = voice.split("_")[-1]
     local_dir = getLocalDir()
     loc_weights = fetchFilesHuggingFace(
         repo_id = meta["repo_id"],
@@ -27,4 +36,10 @@ def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.HEART):
     weights_dict = torch.load(
         loc_weights, map_location="cpu", weights_only=True)
     voice = torch.load(loc_voice, weights_only=True)
-    return weights_dict, voice
+    print(type(weights_dict))
+    voice_pack = VoicePack(
+        person=person, 
+        lang_code=lang_code, 
+        voice=voice
+    )
+    return weights_dict, voice_pack
