@@ -1,5 +1,10 @@
 # tiny-sota
-> An (active development) neat inference library that implements and optimizes tiny latest release State-Of-The-Art models while decoupling them from the complex transformers library and aims to tune the inference pipelines across low-power peripheral devices and newer phones with SoC chips which form a major device of the ecosystem of physical AI (which will shift the AI age)
+An active development neat inference library that implements and optimizes the latest tiny State-of-the-Art models while staying lightweight, explicit, and hardware-aware.
+
+This repo is built with three key principles:
+- 🧩 Minimalism ~ Torch-core only install, with minor optional extras for voice & tokenizer loaders.
+- 🛠️ Explicitness ~ No heavy HuggingFace abstractions; every step is visible, tweakable, and learnable.
+- 📱 Portability ~ to be optimized for low-power devices (SoC chips, newer phones, edge devices), the real frontier of the physical AI age.
 
 |      Model     | Domain | 🤗 Hub Size | Learning Impact |  Developed  |
 |:----------|:--------------------:|:----------------:|:-------------------------:|:-------------------------------:|
@@ -86,16 +91,16 @@ task -> transcribe...
 #### 🔥 Low-level C development
 - [Justine Tunney](https://x.com/justineTunney) wows the community with the [llamafile](https://github.com/Mozilla-Ocho/llamafile), a single-file large language models executable tool!
 #### 🔥 GGUF models inference
-🐎 GGUF format designed for efficient quantized inference, both used by llama.cpp and llamafile for their high-speedup cpu and gpu inferencing
-- ✅ Portable across CPU/GPU, widely used with llama.cpp.
+- 🐎 GGUF format designed for efficient quantized inference, both used by llama.cpp and llamafile for their high-speedup cpu and gpu inferencing
+- ✅ Portable across CPU/GPU.
 #### 🔥 CPU mmap and blocked matrix multiplications
 - 🗂️ mmap allows loading large weights on-demand instead of fully into memory.
 - 🔲 Blocked matrix multiplications (matrix tiling) improves cache locality, with a nice example of a [Triton implementation](https://triton-lang.org/main/getting-started/tutorials/10-block-scaled-matmul.html) of the same.
 - ✅ Boosts CPU inference speed drastically.
 
 ### Acknowledgements
-- 🏆 [Sebastian Raschka](https://x.com/rasbt?lang=en) for from-scratch implementations of these powerful pioneering open-source models, particular Qwen and Llama models.
+- 🏆 [Sebastian Raschka](https://x.com/rasbt?lang=en) for from-scratch implementations of these powerful pioneering open-source models, particularly Qwen and Llama models.
 - 🏆 [OpenAI](https://github.com/openai/whisper/tree/main) for open-sourcing whisper group of models that opened up the speech to text modality for active research, a true robust model at work.
-- 🛠️ [@hexgrad](https://huggingface.co/hexgrad
-) for open-sourcing Kokoro, a magic of its own in inferencing, with cool Audio Post-processing techniques for audio generations and cool thought out workflows to make this work, including a tool release, G2P engine.
-- ❤️ Special thanks to HuggingFace🤗 since most obstacles I got from implementations were resolved by going through their module calls and workflows, as much as it was very abstracted, massive respect!
+- 🛠️ [@hexgrad](https://huggingface.co/hexgrad) for open-sourcing Kokoro, a magic of its own in inferencing, with cool Audio Post-processing techniques for audio generations and cool thought out workflows to make this work, including a tool release, G2P engine.
+- ❤️ HuggingFace🤗 since most obstacles I got from implementations were resolved by going through their module calls and workflows, as much as it was very abstracted, massive respect!
+- 🌍 Open-source pioneers like [Georgi Gerganov](https://x.com/ggerganov) (llama.cpp) & [Justine Tunney](https://x.com/justinetunney) (llamafile)
