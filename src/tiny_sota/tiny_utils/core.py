@@ -10,8 +10,6 @@ except ImportError:
 GRAY = torchvision.io.ImageReadMode.GRAY
 RGB = torchvision.io.ImageReadMode.RGB
 
-from .display import printWarn, printOrange
-
 def read_image(path=None, gray=False)->torch.Tensor:
     mode = GRAY if gray else RGB 
     image = torchvision.io.read_image(path,mode)
