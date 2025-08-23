@@ -1,13 +1,16 @@
 import torch 
+import soundfile as sf 
+
 from typing import Optional, Union
 
-from .utils import generate_text_stream
+from .utils import generate_text_stream, set_g2p, generate_audio
 from ..models import ModelConfigs, AudioConfigs
 from .utils import colorFlush
 from ..tiny_utils import ColorPrint
 
 from ..models.whisper_utils import load_audio, log_mel_spectrogram
 from ..models.whisper_decode import decode_mel_segments
+from ..meta import KOKORO_LANG_CODES, KOKORO_VOICES
 
 class LLMEngine():
     def __init__(self, 
@@ -92,5 +95,23 @@ class STTEngine():
     def reset(self):
         self.predecode_ops.all_tokens = []
         self.predecode_ops.all_segments = []
+
+
+class TTSEngine():
+    def __init__(
+        self, model, 
+        language: KOKORO_LANG_CODES, 
+        device: Union[torch.device, str],
+        voice = KOKORO_VOICES.FEMALE.HEART,
+        ):
+        self.g2p, self.lang_code = set_g2p(language)
+        self.voice = voice.to(device)
+        self.model = model.to(device).eval()
+    def __call__(self, text):
+        for i, audio in enumerate(
+            generate_audio(self.model, self.g2p, text, self.voice, self.lang_code, speed=1)
+        ):
+            sf.write(f'{i}.wav', audio, 24000)
+
 
 
