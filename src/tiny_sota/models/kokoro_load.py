@@ -4,16 +4,13 @@ from .tiny_load import (
     getLocalDir, 
     fetchFilesHuggingFace
 )
-from dataclasses import dataclass
+from typing import Union
+from .configs import VoicePack
 from ..meta import KOKORO_VOICES
 
-@dataclass
-class VoicePack:
-    person: str 
-    lang_code: str
-    voice: torch.Tensor 
-
-def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.AMERICAN_ENGLISH):
+def loadKokoroWeightsAndVoice(
+        voice: str = KOKORO_VOICES.FEMALE.AMERICAN_ENGLISH
+    ) -> Union[dict, VoicePack]:
     meta = MODELS_META.Kokoro_82M
     lang_code = voice[0]
     person = voice.split("_")[-1]
@@ -36,7 +33,6 @@ def loadKokoroWeightsAndVoice(voice: str = KOKORO_VOICES.FEMALE.AMERICAN_ENGLISH
     weights_dict = torch.load(
         loc_weights, map_location="cpu", weights_only=True)
     voice = torch.load(loc_voice, weights_only=True)
-    print(type(weights_dict))
     voice_pack = VoicePack(
         person=person, 
         lang_code=lang_code, 
