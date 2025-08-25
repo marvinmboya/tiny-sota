@@ -1,8 +1,6 @@
 import torch 
 import re, subprocess, sys 
 from misaki import en, espeak
-from ..tiny_utils.display import bcolors
-from ..meta import KOKORO_LANG_CODES
 
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", package])
