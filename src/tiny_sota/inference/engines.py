@@ -5,12 +5,10 @@ from typing import Optional, Union
 
 from .utils import generate_text_stream, set_g2p, generate_audio
 from ..models import ModelConfigs, AudioConfigs
-from .utils import colorFlush
-from ..tiny_utils import ColorPrint
 
 from ..models.whisper_utils import load_audio, log_mel_spectrogram
 from ..models.whisper_decode import decode_mel_segments
-from ..meta import KOKORO_LANG_CODES, KOKORO_VOICES
+from ..models.configs import VoicePack
 
 class LLMEngine():
     def __init__(self, 
@@ -29,7 +27,10 @@ class LLMEngine():
             self.model, token_ids, max_new_tokens, 
             eos_token_id=self.eos_token_id):
             token_id = token.squeeze(0).tolist()
-            colorFlush(self.tokenizer.decode(token_id))
+            print('\x1B[38;5;216;1m' +
+                self.tokenizer.decode(token_id) +
+                + '\033[0m'
+            )
 
 class STTEngine():
     def __init__(
@@ -81,13 +82,13 @@ class STTEngine():
     def switch_task(self):
         task_id = self.tokenizer.sot_sequence[-1]
         if task_id == 50359:
-            ColorPrint.Green("task -> translate...")
+            print("\033[92m task -> translate... \033[0m")
             self.tokenizer.sot_sequence = (
                 self.tokenizer.sot_sequence[:-1]
                 + (50358,)
             )
         if task_id == 50358:
-            ColorPrint.Green("task -> transcribe...")
+            print("\033[92m task -> transcribe...\033[0m")
             self.tokenizer.sot_sequence = (
                 self.tokenizer.sot_sequence[:-1]
                 + (50359,)
@@ -99,18 +100,21 @@ class STTEngine():
 
 class TTSEngine():
     def __init__(
-        self, model, 
-        language: KOKORO_LANG_CODES, 
-        device: Union[torch.device, str],
-        voice = KOKORO_VOICES.FEMALE.HEART,
+        self, model, voice_pack: VoicePack, 
+        device: Union[torch.device, str]
         ):
-        self.g2p, self.lang_code = set_g2p(language)
-        self.voice = voice.to(device)
+        self.g2p, self.lang_code = set_g2p(voice_pack.lang_code)
+        self.voice = voice_pack.voice.to(device)
         self.model = model.to(device).eval()
     def __call__(self, text):
         for i, audio in enumerate(
-            generate_audio(self.model, self.g2p, text, self.voice, self.lang_code, speed=1)
-        ):
+            generate_audio(
+                self.model, 
+                self.g2p, 
+                text, 
+                self.voice, 
+                self.lang_code, 
+                speed=1)):
             sf.write(f'{i}.wav', audio, 24000)
 
 
