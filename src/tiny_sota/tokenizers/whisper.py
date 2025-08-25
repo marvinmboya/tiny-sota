@@ -5,7 +5,8 @@ from pathlib import Path
 import base64
 
 from typing import List, Optional, Tuple, Dict  
-from ..models.configs import Audio_Transcribe_Params, LANGUAGES
+from ..models.configs import Audio_Transcribe_Params
+from ..meta import WHISPER_LANGS
 
 @dataclass
 class Tokenizer:
@@ -24,8 +25,7 @@ class Tokenizer:
         sot: int = self.special_tokens["<|startoftranscript|>"]
         translate: int = self.special_tokens["<|translate|>"]
         transcribe: int = self.special_tokens["<|transcribe|>"]
-
-        langs = tuple(LANGUAGES.keys())[: self.num_languages]
+        langs = tuple(WHISPER_LANGS.keys())[: self.num_languages]
         sot_sequence = [sot]
         if self.language is not None:
             sot_sequence.append(sot + 1 + langs.index(self.language))
@@ -107,7 +107,7 @@ def get_encoding(enc_name, num_languages):
     specials = [
         "<|endoftext|>",
         "<|startoftranscript|>",
-        *[f"<|{lang}|>" for lang in list(LANGUAGES.keys())[:num_languages]],
+        *[f"<|{lang}|>" for lang in list(WHISPER_LANGS.keys())[:num_languages]],
         "<|translate|>",
         "<|transcribe|>",
         "<|startoflm|>",
