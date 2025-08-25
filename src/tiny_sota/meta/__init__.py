@@ -34,7 +34,6 @@ class _MALE:
     SPANISH = "em_alex"
     BRAZ_PORT = "pm_alex"
     ITALIAN = "im_nicola"
-    
 
 @dataclass(frozen=True)
 class KOKORO_VOICES:
@@ -44,5 +43,6 @@ class KOKORO_VOICES:
 _root: Path = Path(__file__).parents[0]
 COCO_CLASSES = load_json(_root / "coco.txt")
 IMAGENET_CLASSES = load_json(_root / "imagenet.txt")
+WHISPER_LANGS = load_json(_root / "whisper_langs.json")
 KOKORO_VOCAB = load_json(_root / "kokoro_vocab.json")
 KOKORO_VOICES = KOKORO_VOICES()
