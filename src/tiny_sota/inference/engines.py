@@ -29,8 +29,7 @@ class LLMEngine():
             token_id = token.squeeze(0).tolist()
             print('\x1B[38;5;216;1m' +
                 self.tokenizer.decode(token_id) +
-                + '\033[0m'
-            )
+                '\033[0m', end="", flush=True)
 
 class STTEngine():
     def __init__(
