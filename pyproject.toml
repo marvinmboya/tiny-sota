@@ -31,6 +31,10 @@ dependencies = [
   'misaki'
 ]
 
+[project.optional-dependencies]
+# pip install tiny-sota[tts]
+tts = ["spacy", "num2words", "phonemizer-fork", "espeakng-loader"]
+
 [project.urls]
 Homepage = "https://github.com/Marvin-desmond/tiny-sota"
 Issues = "https://github.com/Marvin-desmond/tiny-sota/issues"
