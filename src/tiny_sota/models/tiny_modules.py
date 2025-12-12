@@ -34,5 +34,5 @@ class RMSNorm(nn.Module):
         norm_x = x * torch.rsqrt(self.eps + variance)
         rms_norm = norm_x * self.weight
         if self.bias is not None:
-            rms_norm += rms_norm + self.bias
+            rms_norm = rms_norm + self.bias
         return rms_norm.to(input_dtype)
